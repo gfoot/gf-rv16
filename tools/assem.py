@@ -85,7 +85,7 @@ regwrite_ops = {
 def format_arg(arg, typ):
 	if typ == "r":
 		return f"x{arg}"
-	elif arg >= -64 and arg <= 64:
+	elif arg >= -128 and arg <= 128:
 		return f"{arg}"
 	elif arg >= 0:
 		return f"${arg:04X}"
@@ -719,7 +719,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			self.filtered_emit(instr, "ror", [reg, lo, reg], comment, True)
+			self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
+			self.filtered_emit(instr, "ror", [reg, 0, reg], comment, True)
 			return
 
 		if argtypes == "rir" and instr in {"sw", "sb"}:
@@ -729,7 +730,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [rs2, hi], comment, True)
-			self.filtered_emit(instr, "ror", [rs1, lo, rs2], comment, True)
+			self.filtered_emit("addi", "rri", [rs2, rs2, lo], comment, True)
+			self.filtered_emit(instr, "ror", [rs1, 0, rs2], comment, True)
 			return
 
 		if instr == "call" or (instr == "jal" and argtypes == "i"):
@@ -745,7 +747,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			self.filtered_emit("jalr", "rri", [reg, reg, lo], comment, True)
+			self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
+			self.filtered_emit("jalr", "rri", [reg, reg, 0], comment, True)
 			return
 
 		if instr == "jump":
@@ -759,7 +762,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [rt, hi], comment, True)
-			self.filtered_emit("jr", "ri", [rt, lo], comment, True)
+			self.filtered_emit("addi", "rri", [rt, rt, lo], comment, True)
+			self.filtered_emit("jr", "ri", [rt, 0], comment, True)
 			return
 
 		if instr == "tail":

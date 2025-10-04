@@ -3,7 +3,7 @@ import re
 class IsaProps:
 	def __init__(self):
 		self.luishift = 8
-		self.auipcshift = 6
+		self.auipcshift = 8
 		self.orimin = -16
 		self.orimax = 16
 		self.jalmin = -512
@@ -30,7 +30,7 @@ class IsaProps:
 
 		for instrs,constr in [
 			("lui", "imm8h8z"), # broken
-			("auipc", "imm8h6z"),
+			("auipc", "imm8h8z"),
 			("j jal", "imm9ez"),
 			("lw lb lbu sb sw", "imm6z"),
 			("addi", "imm8"),

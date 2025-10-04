@@ -5,7 +5,7 @@ props = isaprops.IsaProps()
 def format_arg(arg, typ):
 	if typ == "r":
 		return f"x{arg}"
-	elif arg >= -64 and arg <= 64:
+	elif arg >= -128 and arg <= 128:
 		return f"{arg}"
 	elif arg >= 0:
 		return f"${arg:04X}"

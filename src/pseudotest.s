@@ -3,7 +3,7 @@ global_thing = $ffee
 global_aligned = $ff00
 global_nearzero = $0004
 
-local_distant_thing = $9000
+local_distant_thing = *+$4000
 
 _start:
 
@@ -12,7 +12,7 @@ _start:
 	addi	t0, t0, %lo(global_thing)                 # EXPECT: addi x8, x8, -18
 
 	# %pcrel_hi, %pcrel_lo
-1:	auipc	t0, %pcrel_hi(local_distant_thing)        # EXPECT: auipc x8, $1000	
+1:	auipc	t0, %pcrel_hi(local_distant_thing)        # EXPECT: auipc x8, $4000	
 	addi	t0, t0, %pcrel_lo(1b)                     # EXPECT: addi x8, x8, -4
 
 	# unimp
@@ -33,27 +33,27 @@ _start:
 
 	# la
 	#	medium -8k <= x <= 8k - auipc : addi
-	la		t0, local_distant_thing        # EXPECT: auipc x8, $1000 : addi x8, x8, -26
+	la		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -26
 
-	# lw a0, var1 => auipc a0, %hi(var1) : lw a0, %lo(var1)(a0)
-	lw		t0, local_distant_thing        # EXPECT: auipc x8, $1000 : lw x8, -30(x8)
-	lb		t0, local_distant_thing        # EXPECT: auipc x8, $0fc0 : lb x8, 30(x8)
-	lbu		t0, local_distant_thing        # EXPECT: auipc x8, $0fc0 : lbu x8, 26(x8)
+	# lw a0, var1 => auipc a0, %hi(var1) : addi a0, a0, %lo(var1) : lw a0, (a0)
+	lw		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -30 : lw x8, 0(x8)
+	lb		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -36 : lb x8, 0(x8)
+	lbu		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -42 : lbu x8, 0(x8)
 
-	# sw a0, var1, t0 => auipc t0, ... : sw a0, ...(t0)
-	sw		a0, local_distant_thing, t0    # EXPECT: auipc x8, $0fc0 : sw x5, 22(x8)
-	sb		a0, local_distant_thing, t0    # EXPECT: auipc x8, $0fc0 : sb x5, 18(x8)
+	# sw a0, var1, t0 => auipc t0, ... : addi ... : sw a0, ...(t0)
+	sw		a0, local_distant_thing, t0    # EXPECT: auipc x8, $4000 : addi x8, x8, -48 : sw x5, 0(x8)
+	sb		a0, local_distant_thing, t0    # EXPECT: auipc x8, $4000 : addi x8, x8, -54 : sb x5, 0(x8)
 
-	# call label => auipc ra, ... : jalr ra, ra, ...
+	# call label => auipc ra, ... : addi : jalr ra, ra, ...
 1:
-	call	local_distant_thing       # EXPECT: auipc x1, $0fc0 : jalr x1, x1, 14
-	call	1b                        # EXPECT: jal x1, -4
+	call	local_distant_thing       # EXPECT: auipc x1, $4000 : addi x1, x1, -60 : jalr x1, x1, 0
+	call	1b                        # EXPECT: jal x1, -6
 
 	# tail label		=> jump label, t1
-	tail	local_distant_thing       # EXPECT: auipc x8, $0fc0 : jr x8, 8
+	tail	local_distant_thing       # EXPECT: auipc x8, $4000 : addi x8, x8, -68 : jr x8, 0
 
-	# jump label, rd	=> auipc rd, ... : jr rd, ...
-	jump	local_distant_thing, a2   # EXPECT: auipc x7, $0fc0 : jr x7, 4
+	# jump label, rd	=> auipc rd, ... : addi ... : jr rd, ...
+	jump	local_distant_thing, a2   # EXPECT: auipc x7, $4000 : addi x7, x7, -74 : jr x7, 0
 
 	# ret => jr ra, 0
 	ret                               # EXPECT: jr x1, 0
@@ -211,21 +211,21 @@ _start:
 
 
 	# beq mid => bne +4 : j mid     mid out of range of beq but not out of range of j
-	blt		a0, a1, _start        # EXPECT: bge x5, x6, 4 : j -$0100
-	bgt		a0, a1, _start        # EXPECT: bge x6, x5, 4 : j -$0104
-	bltu	a0, a1, _start        # EXPECT: bgeu x5, x6, 4 : j -$0108
-	bgtu	a0, a1, _start        # EXPECT: bgeu x6, x5, 4 : j -$010c
-	bne		a0, a1, _start        # EXPECT: beq x5, x6, 4 : j -$0110
-	bge		a0, a1, _start        # EXPECT: blt x5, x6, 4 : j -$0114
-	ble		a0, a1, _start        # EXPECT: blt x6, x5, 4 : j -$0118
-	bgeu	a0, a1, _start        # EXPECT: bltu x5, x6, 4 : j -$011c
-	bleu	a0, a1, _start        # EXPECT: bltu x6, x5, 4 : j -$0120
-	beq		a0, a1, _start        # EXPECT: bne x5, x6, 4 : j -$0124
+	blt		a0, a1, _start        # EXPECT: bge x5, x6, 4 : j -$0110
+	bgt		a0, a1, _start        # EXPECT: bge x6, x5, 4 : j -$0114
+	bltu	a0, a1, _start        # EXPECT: bgeu x5, x6, 4 : j -$0118
+	bgtu	a0, a1, _start        # EXPECT: bgeu x6, x5, 4 : j -$011c
+	bne		a0, a1, _start        # EXPECT: beq x5, x6, 4 : j -$0120
+	bge		a0, a1, _start        # EXPECT: blt x5, x6, 4 : j -$0124
+	ble		a0, a1, _start        # EXPECT: blt x6, x5, 4 : j -$0128
+	bgeu	a0, a1, _start        # EXPECT: bltu x5, x6, 4 : j -$012c
+	bleu	a0, a1, _start        # EXPECT: bltu x6, x5, 4 : j -$0130
+	beq		a0, a1, _start        # EXPECT: bne x5, x6, 4 : j -$0134
 
-	bnez	a0, _start            # EXPECT: beq x5, x5, 4 : j -$0128
-	beqz	a0, _start            # EXPECT: bne x5, x5, 4 : j -$012c
-	bgez	a0, _start            # EXPECT: blt x5, x5, 4 : j -$0130
-	bltz	a0, _start            # EXPECT: bge x5, x5, 4 : j -$0134
+	bnez	a0, _start            # EXPECT: beq x5, x5, 4 : j -$0138
+	beqz	a0, _start            # EXPECT: bne x5, x5, 4 : j -$013c
+	bgez	a0, _start            # EXPECT: blt x5, x5, 4 : j -$0140
+	bltz	a0, _start            # EXPECT: bge x5, x5, 4 : j -$0144
 
 	# For comparisons against 0, encode as comparison against self
 1:	beqz	a0, 1b                # EXPECT beq x5, x5, 0
