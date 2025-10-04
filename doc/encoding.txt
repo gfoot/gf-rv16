@@ -1,0 +1,136 @@
+                                                   	 						*la		rd, immz
+                                                                 
+                                                   	 						*mv		rd, rs1        => slli 0, srli 0, srai 0, andi -1, and self, etc
+                                                                 
+ i  i  i   i  i  .   .  .  .   d  d  d   .  .  .  .					li		rd, imm     =>  ori  rd, sp, imm   or xori       li rd, 0 => xor self, maybe, or sltiu/0
+                                                                 
+ i  i  i   i  i  i   i  i  i   d  d  d   i  i  0  0	 	0			lui		rd, imm
+ i  i  i   i  i  i   i  i  i   d  d  d   0  0  1  0	 	10			auipc	rd, imm
+                                                                 
+ i  i  i   i  i  0   i  i  i   i  0  0   1  0  1  0 	11	00		j		imm
+ i  i  i   i  i  0   i  i  i   i  1  0   1  0  1  0 	11	01		jal		ra, imm
+
+ i  i  i   i  i  0  s1 s1 s1   i  0  1   1  0  1  0 	11	02		*bnez	rs1, imm?
+ i  i  i   i  i  0  s1 s1 s1   i  1  1   1  0  1  0 	11	03		*beqz	rs1, imm?
+                                                            	      
+ i  i  i   i  i  1  s1 s1 s1   d  d  d   1  0  1  0		11	1		lw		rd, immz(rs1)
+ i  i  i   i  i  0  s1 s1 s1   d  d  d   0  1  1  0		12	0		lb		rd, immz(rs1)
+ i  i  i   i  i  1  s1 s1 s1   d  d  d   0  1  1  0		12	1		lbu		rd, immz(rs1)
+                                                                 
+ i  i  i   i  i  0  s1 s1 s1  s3 s3 s3   1  1  1  0 	13	0		sb		rs3, immz(rs1)
+ i  i  i   i  i  1  s1 s1 s1  s3 s3 s3   1  1  1  0 	13	1		sw		rs3, immz(rs1)
+                                                                 
+ i  i  i   i  i  0  s1 s1 s1   d  d  d   0  0  0  1 	20	0		addi	rd, rs1, imm
+ i  i  i   i  i  1  s1 s1 s1   d  d  d   0  0  0  1 	20	1		andi	rd, rs1, imm
+ i  i  i   i  i  0  s1 s1 s1   d  d  d   1  0  0  1 	21	0		ori		rd, rs1, imm
+ i  i  i   i  i  1  s1 s1 s1   d  d  d   1  0  0  1 	21	1		xori	rd, rs1, imm
+ i  i  i   i  i  0  s1 s1 s1   d  d  d   0  1  0  1 	22	0	 	slti	rd, rs1, immz
+ i  i  i   i  i  1  s1 s1 s1   d  d  d   0  1  0  1 	22	1		sltiu	rd, rs1, imm
+                                                                 	
+s2 s2 s2   0  0  0  s1 s1 s1   0  0  0   1  1  0  1 	23	00	00	beq		rs1, rs3, 2
+s2 s2 s2   1  0  0  s1 s1 s1   0  0  0   1  1  0  1 	23	00	01	bne		rs1, rs3, 2
+s2 s2 s2   0  0  0  s1 s1 s1   1  0  0   1  1  0  1 	23	00	10	blt		rs1, rs3, 2  <=  bgt  rs3, rs1, 2
+s2 s2 s2   1  0  0  s1 s1 s1   1  0  0   1  1  0  1 	23	00	11	bge		rs1, rs3, 2  <=  ble  rs3, rs1, 2
+s2 s2 s2   0  0  0  s1 s1 s1   0  1  0   1  1  0  1 	23	01	00	bltu	rs1, rs3, 2  <=  bgtu rs3, rs1, 2
+s2 s2 s2   1  0  0  s1 s1 s1   0  1  0   1  1  0  1 	23	01	01	bgeu	rs1, rs3, 2  <=  bleu rs3, rs1, 2
+                                                                  
+ .  .  .   .  0  0   .  .  .   1  1  0   1  1  0  1 	23	01	1	----
+                   
+ i  i  i   i  0  0  s1 s1 s1   i  0  1   1  1  0  1 	23	02		jr		immz(rs1)
+ i  i  i   i  0  0  s1 s1 s1   i  1  1   1  1  0  1 	23	03		jalr	ra, immz(rs1)
+                   
+ i  i  i   i  1  0  s1 s1 s1   d  d  d   1  1  0  1 	23	1		slli	rd, rs1, imm4   sll rd, rs1, 16   =>  li rd, 0
+ i  i  i   i  0  1  s1 s1 s1   d  d  d   1  1  0  1 	23	2	 	srli	rd, rs1, imm4   srl rd, rs1, 16   =>  li rd, 0
+ i  i  i   i  1  1  s1 s1 s1   d  d  d   1  1  0  1 	23	3		srai	rd, rs1, imm4   sra rd, rs1, 16   =>  sra rd, rs1, 15
+                                                                 	
+s2 s2 s2   1  1  0  s1 s1 s1   d  d  d   1  1  1  1 	33	3<		add		rd, rs1, rs2	rs1 < rs2		add  rd, rs1, rs1  =>  slli rd, rs1, 1
+s2 s2 s2   1  1  0  s1 s1 s1   d  d  d   1  1  1  1 	33	3>		and		rd, rs1, rs2	rs1 > rs2		and  rd, rs1, rs1  =>  mv   rd, rs1
+s2 s2 s2   0  1  1  s1 s1 s1   d  d  d   1  1  1  1 	33	6<		or		rd, rs1, rs2	rs1 < rs2		or   rd, rs1, rs1  =>  mv   rd, rs1
+s2 s2 s2   0  1  1  s1 s1 s1   d  d  d   1  1  1  1 	33	6>		xor		rd, rs1, rs2	rs1 > rs2		xor  rd, rs1, rs1  =>  li   rd, 0
+s2 s2 s2   0  0  0  s1 s1 s1   d  d  d   1  1  1  1 	33	0		sll		rd, rs1, rs2
+s2 s2 s2   1  0  0  s1 s1 s1   d  d  d   1  1  1  1 	33	1		srl		rd, rs1, rs2
+s2 s2 s2   0  0  1  s1 s1 s1   d  d  d   1  1  1  1 	33	4		sra		rd, rs1, rs2
+s2 s2 s2   1  0  1  s1 s1 s1   d  d  d   1  1  1  1 	33	5!		slt		rd, rs1z, rs2   rs1 != rs2		slt  rd, rs1, rs1  =>  li   rd, 0
+s2 s2 s2   0  1  0  s1 s1 s1   d  d  d   1  1  1  1 	33	2!		sltu	rd, rs1z, rs2   rs1 != rs2		sltu rd, rs1, rs1  =>  li   rd, 0
+s2 s2 s2   1  1  1  s1 s1 s1   d  d  d   1  1  1  1 	33	7!		sub		rd, rs1z, rs2	rs1 != rs2		sub  rd, rs1, rs1  =>  li   rd, 0
+                                                                  
+s1 s1 s1   0  1  0  s1 s1 s1   d  d  d   1  1  1  1 	33	2=		snez	rd, rs1			<=	sltu rd, zero, rs1
+s1 s1 s1   1  0  1  s1 s1 s1   d  d  d   1  1  1  1 	33	5=		sgtz	rd, rs1			<=	slt  rd, zero, rs1
+s1 s1 s1   1  1  1  s1 s1 s1   d  d  d   1  1  1  1 	33	7=		neg		rd, rs1			<=	sub  rd, zero, rs1
+
+s1 s1 s1   1  1  0  s1 s1 s1   d  d  d   1  1  1  1 	33	3=		tbc		rd, rs1
+s1 s1 s1   0  1  1  s1 s1 s1   d  d  d   1  1  1  1 	33	6=		tbc		rd, rs1
+
+ .  .  .   .  .  .   .  .  .   .  .  .   0  1  1  1 	32			tbc
+ .  .  .   .  .  .   .  .  .   .  .  .   1  0  1  1 	31			tbc
+ .  .  .   .  .  .   .  .  .   .  .  .   0  0  1  1 	30			tbc
+                                                                  
+
+ .  .  .   .  .  .   .  .  .   .  .  .   .  .  .  . 				ecall
+                                                                  
+
+
+
+		*la		rd, immz
+
+li		rd, imm5			-16..16
+
+lui		rd, imm11h			$0020..$ffe0 multiples of 32
+auipc	rd, imm9h			pc-8192..pc+8192 multiples of 32 not 0
+
+*bnez	rs1, imm6e			pc-64..pc+64 even not 0
+*beqz	rs1, imm6e			pc-64..pc+64 even not 0
+
+j		imm9e				pc-512..pc+512 even not 0
+jal		rd, imm9e			pc-512..pc+512 even not 0
+  
+lw		rd, immz5(rs1)		-16..15
+lb		rd, immz5(rs1)		-16..15
+lbu		rd, immz5(rs1)		-16..15
+
+sb		rs2, immz5(rs1)		-16..15
+sw		rs2, immz5(rs1)		-16..15
+
+addi	rd, rs1, imm5		-16..16
+andi	rd, rs1, imm5		-16..16
+ori		rd, rs1, imm5		-16..16
+xori	rd, rs1, imm5		-16..16
+slti	rd, rs1, immz5		-16..15
+sltiu	rd, rs1, imm5		-16..16
+
+beq		rs1, rs2, 2
+bne		rs1, rs2, 2
+blt		rs1, rs2, 2
+bge		rs1, rs2, 2
+bltu	rs1, rs2, 2
+bgeu	rs1, rs2, 2
+
+jalr	rd, immz5e(rs1)		-32..30 even
+jr		immz5e(rs1)			-32..30 even
+
+slli	rd, rs1, imm4		1..15
+srli	rd, rs1, imm4		1..15
+srai	rd, rs1, imm4		1..15
+
+
+li rd, <-16 or >16		=>	lui rd, XXX ; addi rd, rd, YYY
+
+li rd, 0				=>	sltiu rd, rd, 0
+
+bnez rs1, >64			=>	beqz rs1, 2 ; j pc-512..pc+512
+							beqz rs1, 4 ; auipc rd, hi(addr-pc-2) ; jr lo(addr-pc)(rd)
+
+j	>512				=>	auipc rd, hi(addr-pc-2) ; jr lo(addr-pc)(rd)
+jal >512				=>	auipc ar, hi(addr-pc-2) ; jalr lo(addr-pc)(ar)
+
+
+	
+	x0		zero
+	x1		ra
+	x2		sp
+	x3		s0
+	x4		s1
+	x5		a0
+	x6		a1
+	x7		a2
+	x8		t0
