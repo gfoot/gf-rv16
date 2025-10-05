@@ -65,7 +65,7 @@ class Sim:
 		def bgeu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) >= st.ureg(rs2))
 
 		def li_ri   (st, rd, imm): st.setreg(rd, imm)
-		def lui_ri  (st, rd, imm): st.setreg(rd, imm)
+		def lui_ri  (st, rd, imm): st.unimp() if imm == 0 else st.setreg(rd, imm)
 		def auipc_ri(st, rd, imm): st.setreg(rd, imm + st.getpc())
 		def jal_ri  (st, rd, imm): st.setreg(rd, st.getpc() + 2) ; st.setpc(st.getpc() + imm - 2)
 		def jr_ri   (st, rs1, imm): st.setpc(st.sreg(rs1) + imm - 2)
@@ -120,6 +120,8 @@ class Sim:
 		if cond:
 			self.pc = value
 
+	def unimp(self):
+		self.exception(2, self.pc, f"Illegal instruction (unimp)")
 
 	def memreadw(self, addr):
 
