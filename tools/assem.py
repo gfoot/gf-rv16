@@ -11,7 +11,7 @@ import isaprops
 DEBUG = 0
 
 re_assignment = re.compile(r"(\*|[A-Za-z_0-9]+)\s*=(.*)")
-re_labeldef = re.compile(r"([A-Za-z_0-9]+)\s*:(.*)")
+re_labeldef = re.compile(r"([.A-Za-z_0-9]+)\s*:(.*)")
 re_label = re.compile(r"([.A-Za-z_0-9]+)$")
 re_relativelabel = re.compile(r"(\d+[bf])$")
 re_instr = re.compile(r"([.A-Za-z]+)\s*(.*)")
@@ -512,6 +512,17 @@ class Assembler:
 			self.error(f"Unresolved expectations: {' : '.join(self.expectations)}")
 
 		return self.output, self.labels["_start"]
+
+
+	def builddebuginfo(self):
+		debuginfo = {}
+		for k,v in self.labels.items():
+			if k.startswith("."):
+				continue
+			if k == "_bottom" or k == "_top":
+				continue
+			debuginfo[k] = v
+		return debuginfo
 
 
 	def filtered_emit(self, instr, argtypes, value_args, comment, changed = False):

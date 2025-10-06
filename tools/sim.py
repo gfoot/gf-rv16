@@ -84,11 +84,24 @@ class Sim:
 		def ecall_(st): st.ecall()
 
 
-	def __init__(self, memory, entry, log):
+	class DebugInfo:
+		def __init__(self, debuginfo):
+			self.symboldict = debuginfo
+			self.sortedbyvalue = sorted([(v,k) for k,v in debuginfo.items()], reverse=True)
+
+		def sym_from_addr(self, addr):
+			for v,k in self.sortedbyvalue:
+				if v <= addr:
+					return k, addr-v
+			return None
+
+
+	def __init__(self, memory, entry, log, debuginfo):
 
 		self.memory = memory
 		self.pc = entry
 		self.log = log
+		self.debuginfo = Sim.DebugInfo(debuginfo)
 
 		self.regs = [0] * 9
 
@@ -123,15 +136,19 @@ class Sim:
 	def unimp(self):
 		self.exception(2, self.pc, f"Illegal instruction (unimp)")
 
-	def memreadw(self, addr):
+	def memreadw(self, addr, noexcept=False):
 
 		if addr & 1:
-			self.exception(4, addr, f"Unaligned address during word read")
+			if not noexcept:
+				self.exception(4, addr, f"Unaligned address during word read")
+			return None
 
 		typ,types,value = self.memory[addr // 2]
 
 		if typ != "data":
-			self.exception(5, addr, f"Read from non-data memory ({typ} {value})")
+			if not noexcept:
+				self.exception(5, addr, f"Read from non-data memory ({typ} {value})")
+			return None
 
 		return value
 
@@ -214,8 +231,85 @@ class Sim:
 		return not self.stop
 
 
+	def backtrace(self):
+		addr = self.getpc()
+		sp = self.ureg(2)
+
+		stackframes = []
+
+		while addr is not None and len(stackframes) < 100:
+			sym,offset = self.debuginfo.sym_from_addr(addr)
+
+			stackframes.append((addr, offset, sym))
+
+			if not sym:
+				break
+
+			framesize = 0
+
+			# Look at the instruction at sym - if it's addi sp, sp, -nnn then we know the likely frame size
+			symaddr = addr - offset
+			
+			typ,types,value = self.memory[symaddr // 2]
+
+			if typ == "addi" and types == "rri":
+				if value[0] == 2 and value[1] == 2 and value[2] < 0 and value[2] > -128:
+					framesize = -value[2]
+
+			if framesize:
+				addr = self.memreadw(sp,True)
+				sp = (sp + framesize) & 0xffff
+			elif len(stackframes) == 1:
+				# The very first function might be a leaf function that doesn't need a stack frame
+				addr = self.ureg(1) # ra
+			else:
+				break
+
+		return stackframes
+
+
 	def exception(self, index, addr, message):
-		self.log.error(f"Exception {index:02X} at address {addr:04x}: {message}")
+
+		pc = self.getpc()
+		sp = self.ureg(2)
+
+		exceptionstring = f"Exception {index:02X} at address {addr:04x}: {message}"
+
+		regsstr = f"  pc = {pc:04X}  "
+		regsstr += "  ".join([f"x{i} = {self.ureg(i):04X}" for i in range(1, 9)])
+
+		def formatstack(addr, count):
+			values = []
+			for stackaddr in range(addr, addr+2*count, 2):
+				value = self.memreadw(stackaddr & 0xffff, True)
+				if value is None:
+					break
+				values.append(value)
+
+			return "  ".join([f"{value:04X}" for value in values])
+
+		stackstr = "  stack:  " + formatstack(sp, 16)
+
+		sys.stdout.write("\n")
+		sys.stdout.write("\n")
+		sys.stdout.write(exceptionstring+"\n")
+		sys.stdout.write("\n")
+		sys.stdout.write(regsstr+"\n")
+		sys.stdout.write("\n")
+		sys.stdout.write(stackstr+"\n")
+		sys.stdout.write("\n")
+
+		stackframes = self.backtrace()
+
+		for i in range(len(stackframes)-1, -1, -1):
+			addr, offset, sym = stackframes[i]
+			symstr = f"{offset:3} + {sym}" if sym else "?"
+
+			sys.stdout.write(f"  {i:3}   {addr:04X}  {symstr}\n")
+
+		sys.stdout.write("\n")
+
+		self.log.error(exceptionstring)
 		sys.exit(1)
 
 
@@ -286,8 +380,11 @@ if __name__ == "__main__":
 
 	print(f"Assembling {filename}...")
 	with open(listingfilename, "w") as listingfile:
-		code, entry = assem.Assembler().assemble(filename, listingfile)
+		assembler = assem.Assembler()
+		code, entry = assembler.assemble(filename, listingfile)
 		listingfile.close()
+
+		debuginfo = assembler.builddebuginfo()
 
 	print("Simulating...")
 
@@ -296,7 +393,7 @@ if __name__ == "__main__":
 		tracefile = open(tracefilename, "w")
 		log.settracefile(tracefile)
 
-	sim = Sim(code, entry, log)
+	sim = Sim(code, entry, log, debuginfo)
 		
 	while sim.step():
 		pass
