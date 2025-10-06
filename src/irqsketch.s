@@ -150,7 +150,7 @@ irqhandler:
 #
 #	On hardware interrupt if MIE is set, or on ecall, or on ebreak:
 #		Set mepc = pc
-#		Set mcause = $8800, $0800, $0008 (int, ecall, ebreak)
+#		Set mcause = $800b, $000b, $0003 (int, ecall, ebreak)
 #		Set pc = mtvec = 0
 #		Clear MIE
 #
@@ -173,10 +173,10 @@ traphandler:
 	sw		t0, 6(sp)           # save t0
 	csrrsi	t0, mcause, 0       # read mcause
 	bltz	t0, irqhandler      # is it IRQ?
-	slli	t0, t0, 4           # shift the next interesting bit to the top
-	bltz	t0, ecallhandler    # is it ecall?
-	bnez	t0, ebreakhandler   # ebreak would also set a low bit
-	j		resethandler        # hard reset clears all bits
+	beqz	t0, resethandler    # hard reset sets to zero
+	addi	t0, t0, -11         # 11 = ecall
+	beqz	t0, ecallhandler    # is it ecall?
+	j		ebreakhandler       # assume ebreak for anything else
 
 
 irqhandler:
@@ -194,11 +194,11 @@ ecallhandler:
 	csrrsi	t0, mepc, 0         # get mepc
 	addi	t0, t0, 2           # add 2 to skip the ecall instruction when we return
 	sw		t0, 4(sp)           # store this value for later
-	csrrsi	t0, mstatus, 8      # set MEI to allow interrupts
+	csrrsi	t0, mstatus, 8      # set MIE to allow interrupts
 
 	# ecall handling code here
 
-	csrrci	t0, mstatus, 8      # clear MEI to disable interrupts
+	csrrci	t0, mstatus, 8      # clear MIE to disable interrupts
 	lw		t0, 4(sp)           # restore the target mepc value
 	csrrw	t0, mepc, t0		# write the mepc value to the register
 	lw		t0, 6(sp)           # restore old t0 value
@@ -219,8 +219,8 @@ ecallhandler:
 $0000		addi	sp, sp, -8
 $0002		sw		t0, 6(sp)		# save t0
 $0004		csrrsi	t0, mcause, 0
-$0006		slli	t0, t0, 4
-$0008		bgez	t0, $000c
+$0006		addi	t0, t0, -3
+$0008		beqz	t0, $000c
 $000a		j		ecallhandler
 $000c		j		ebreakhandler
 $000e		nop
@@ -246,9 +246,56 @@ $0004	resetvec:	j	resethandler
 $0006		...
 
 
+# With this approach ecallhandler has a lot more latitude and we can define a calling convention
+# that removes a lot of the boilerplate - e.g. use the regular function call convention, so
+# there's no need to save t0 or ra and we can just copy mepc into ra and return using 'ret'.
+# (This is only possible in an M-mode-only system as otherwise we'd need to return to U-mode.)
+#
+# This removes the need to support setting a CSR to a particular value as we were only using that
+# to write to mepc.  We may also be able to get away with not supporting explicit disabling of
+# interrupts, so the only CSR operations would be reading mepc and setting MIE.
+ecallhandler:
+	csrrsi	ra, mepc, 0         # get mepc into ra
+	addi	ra, ra, 2           # add 2 to skip the ecall instruction when we return
+
+	csrrsi	t0, mstatus, 8      # set MIE to allow interrupts
+
+	# ecall handling code here
+
+	ret                         # normal ret, nothing fancy needed
+
+
+# I still like the ARM-like idea that some registers are shadowed when servicing an interrupt.  A
+# low cost approach there could be to shadow just ra - so that when the interrupt-disable bit is
+# set, ra refers to a different register (i.e. mepc).  On interrupt/ebreak/ecall that register is 
+# set to the current program counter.  The trap handler can't see the true ra value any more, but 
+# it doesn't need it.
+#
+# On top of that, if the MIE state is set/cleared by writing to the non-existent low bit of the
+# program counter, then any "jr", "jalr", or "ret" can manipulate it - there's no need for any
+# specialist instructions like mret or csrrsi.
+ecallhandler:
+	mv		t0, ra                     # copy the shadow ra register to t0
+	la		a2, .interruptsenabled-1   # form a pointer to .interruptsenabled with the bottom bit cleared
+	jr		a2                         # jump through the pointer to enable interrupts
+.interruptsenabled:
+	# now interrupts are enabled
+	addi	ra, t0, 2                  # copy the shadow ra value into the normal ra register, plus 2 to skip the ecall instruction
+
+	# ecall handling code here
+
+	ret                                # normal ret, nothing fancy needed
+
+
+# ebreak would be handled similarly, but would suffer a bit through not being able to capture 
+# and report the full state of the machine (as it can't see true ra)
+
+
+
 
 # Here's a more specific irqhandler based on some 6502 code, focusing on the mechanics of the
-# I/O rather than the calling convention:
+# I/O rather than the calling convention which - aside from the need to save registers - 
+# doesn't otherwise affect it much:
 
 irqhandler:
 	# Save any registers we need before modifying them
@@ -264,7 +311,7 @@ irqhandler:
 	sw		s1, 6(sp)
 	sw		a0, 4(sp)
 	sw		a1, 2(sp)
-	sw		a0, 0(sp)
+	sw		a2, 0(sp)
 
 	lui		t0, os_globals
 	lui		s0, ACIA_BASE
@@ -364,7 +411,7 @@ aftervia:
 	lw		s1, 6(sp)
 	lw		a0, 4(sp)
 	lw		a1, 2(sp)
-	lw		a0, 0(sp)
+	lw		a2, 0(sp)
 	addi	sp, sp, 12
 	mret
 
