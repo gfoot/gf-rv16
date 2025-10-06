@@ -18,30 +18,6 @@ re_instr = re.compile(r"([.A-Za-z]+)\s*(.*)")
 re_number = re.compile(r"-?(\$[0-9A-Fa-f]+|[0-9]+)$")
 re_directive = re.compile(r"\.([A-Za-z]+)((\s|$).*)")
 re_directivearg = re.compile(r'("[^"]*"|[^,]*[^, ])\s*(,|$)\s*(.*)')
-re_hilomacro = re.compile(r'%([a-zA-Z0-9_]*)\((.*)\)')
-
-restr_instr = r"([A-Za-z]+)"
-restr_inssep = r"\s+"
-restr_argsep = r"\s*,\s*"
-restr_reg = r"([xsta][0-9]|x1[0-5]|zero|sp|ra)"
-restr_imm = r'([^,]*[^, ])'
-restr_mem = restr_imm + r"? *\(" + restr_reg + r"\)"
-restr_end = r"\s*$"
-
-def compile_insfor_regex(argtypes):
-	restrs = {
-		"r": restr_reg,
-		"i": restr_imm,
-		"m": restr_mem
-	}
-
-	if argtypes:
-		return re.compile(restr_instr + restr_inssep + restr_argsep.join([restrs[typ] for typ in argtypes]) + restr_end)
-	else:
-		return re.compile(restr_instr + restr_end)
-
-
-instruction_formats = [(argtypes, compile_insfor_regex(argtypes)) for argtypes in ["rrr", "rri", "rir", "rr", "rm", "ri", "ir", "r", "i", ""]]
 
 
 instructions_with_pcrel_immed = set([
