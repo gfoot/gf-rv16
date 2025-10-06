@@ -40,7 +40,7 @@ printnum:
 	la		t0, printnumtable
 1:
 	lh		a2, 2(t0)
-	bleu	a1, a2, 1f
+	bltu	a1, a2, 1f
 	addi	t0, t0, 2
 	j		1b
 1:
