@@ -59,27 +59,24 @@ class Sim:
 
 		def beq_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == st.sreg(rs2))
 		def bne_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != st.sreg(rs2))
-		def blt_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) < st.sreg(rs2))
-		def bltu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) < st.ureg(rs2))
+		def blt_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  st.sreg(rs2))
+		def bltu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) <  st.ureg(rs2))
 		def bge_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= st.sreg(rs2))
 		def bgeu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) >= st.ureg(rs2))
 
-		def li_ri   (st, rd, imm): st.setreg(rd, imm)
 		def lui_ri  (st, rd, imm): st.unimp() if imm == 0 else st.setreg(rd, imm)
 		def auipc_ri(st, rd, imm): st.setreg(rd, imm + st.getpc())
-		def jal_ri  (st, rd, imm): st.setreg(rd, st.getpc() + 2) ; st.setpc(st.getpc() + imm - 2)
-		def jr_ri   (st, rs1, imm): st.setpc(st.sreg(rs1) + imm - 2)
 
-		def j_i(st, imm): st.setpc(st.getpc() + imm - 2)
+		def j_i     (st,          imm):                                                     st.setpc(st.getpc() + imm - 2)
+		def jal_ri  (st, rd,      imm):                     st.setreg(rd, st.getpc() + 2) ; st.setpc(st.getpc() + imm - 2)
+		def jalr_rri(st, rd, rs1, imm): dest=st.sreg(rs1) ; st.setreg(rd, st.getpc() + 2) ; st.setpc(dest       + imm - 2)
+		def jr_ri   (st,     rs1, imm): dest=st.sreg(rs1) ;                                 st.setpc(dest       + imm - 2)
 
-		def lb_ror(st, rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
-		def lbu_ror(st, rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)) & 0xff)
-		def lw_ror(st, rd, imm, rs1): st.setreg(rd, st.memreadw(imm + st.sreg(rs1)))
-		def sb_ror(st, rs1, imm, rs2): st.memwriteb(imm + st.sreg(rs2), st.sreg(rs1))
-		def sw_ror(st, rs1, imm, rs2): st.memwritew(imm + st.sreg(rs2), st.sreg(rs1))
-
-		def jalr_rri(st, rd, rs1, imm): dest=st.sreg(rs1) + imm ; st.setreg(rd, st.getpc() + 2) ; st.setpc(dest - 2)
-
+		def lb_ror (st,  rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
+		def lbu_ror(st,  rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)) & 0xff)
+		def lw_ror (st,  rd, imm, rs1): st.setreg(rd, st.memreadw(imm + st.sreg(rs1)))
+		def sb_ror (st, rs1, imm, rs2): st.memwriteb(imm + st.sreg(rs2), st.sreg(rs1))
+		def sw_ror (st, rs1, imm, rs2): st.memwritew(imm + st.sreg(rs2), st.sreg(rs1))
 
 		def ecall_(st): st.ecall()
 
