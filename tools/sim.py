@@ -87,7 +87,7 @@ class Sim:
 	class DebugInfo:
 		def __init__(self, debuginfo):
 			self.symboldict = debuginfo
-			self.sortedbyvalue = sorted([(v,k) for k,v in debuginfo.items()], reverse=True)
+			self.sortedbyvalue = sorted([(v,k) for k,v in debuginfo.items() if '.' not in k], reverse=True)
 
 		def sym_from_addr(self, addr):
 			for v,k in self.sortedbyvalue:

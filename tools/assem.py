@@ -156,6 +156,9 @@ class Assembler:
 
 	def setlabel(self, name, value, allowpadding=False):
 
+		if name.startswith("."):
+			name = f"{self.currentsymbol}{name}"
+
 		if name in self.labels.keys():
 
 			if self.labels[name] is not None and self.labels[name] != value:
@@ -177,20 +180,20 @@ class Assembler:
 
 	def nextrelativelabel(self):
 		self.numrelativelabels += 1
-		return f".L{self.numrelativelabels}"
+		return f"{self.currentsymbol}.L{self.numrelativelabels}"
 
 	
-	def lookuplabel(self, arg):
-		if arg == "*":
+	def lookuplabel(self, name):
+		if name == "*":
 			return self.pos
 
-		if re_relativelabel.match(arg):
-			direction = arg[-1]
-			number = arg[:-1]
+		if re_relativelabel.match(name):
+			direction = name[-1]
+			number = name[:-1]
 			
 			if direction == 'b':
 				if number not in self.backrelativelabels.keys():
-					self.error(f"Backward label reference not found: {arg}")
+					self.error(f"Backward label reference not found: {name}")
 				target = self.backrelativelabels[number]
 			elif number in self.forwardrelativelabels.keys():
 				target = self.forwardrelativelabels[number]
@@ -198,15 +201,18 @@ class Assembler:
 				target = self.nextrelativelabel()
 				self.forwardrelativelabels[number] = target
 
-			arg = target
+			name = target
 
-		if re_label.match(arg):
-			if arg not in self.labels.keys():
+		if re_label.match(name):
+			if name.startswith("."):
+				name = f"{self.currentsymbol}{name}"
+
+			if name not in self.labels.keys():
 				if self.assemblypass > 0:
-					self.error(f"Label not defined: {arg}")
+					self.error(f"Label not defined: {name}")
 				return self.pos
 			else:
-				value = self.labels[arg]
+				value = self.labels[name]
 				if value is not None:
 					return value
 
@@ -315,6 +321,9 @@ class Assembler:
 			else:
 
 				self.setlabel(name, self.pos, True)
+
+				if not name.startswith("."):
+					self.currentsymbol = name
 
 				if self.assemblypass == self.lastpass:
 					self.log_listing(f"{self.pos:04x}  {name}:")
@@ -517,8 +526,6 @@ class Assembler:
 	def builddebuginfo(self):
 		debuginfo = {}
 		for k,v in self.labels.items():
-			if k.startswith("."):
-				continue
 			if k == "_bottom" or k == "_top":
 				continue
 			debuginfo[k] = v
@@ -872,7 +879,13 @@ class Assembler:
 if __name__ == "__main__":
 
 	print("Assembling...")
-	result, entry = Assembler().assemble(sys.argv[1], sys.stdout)
+	assembler = Assembler()
+	result, entry = assembler.assemble(sys.argv[1], sys.stdout)
+
+	print()
+	print("Symbols:")
+	for v,k in sorted([(v,k) for k,v in assembler.builddebuginfo().items()]):
+		print(f"  {v:04X} {k}")
 
 	print()
 	print("Disassembling...")
