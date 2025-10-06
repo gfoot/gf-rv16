@@ -85,6 +85,9 @@ logged_free:
 	mv		a0, s0
 	call	free
 
+	call	printimm
+	.asciz "\r\n"
+
 	lw		s0, 2(sp)
 	lw		ra, (sp)
 	addi	sp, sp, 4

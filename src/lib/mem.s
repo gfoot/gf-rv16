@@ -71,25 +71,6 @@ alloc_init:
 	ret
 
 
-alloc_error_no_room:
-	mv		s0, a0
-
-	call	printimm
-	.asciz "\r\n\nOut of memory while allocating "
-
-	mv		a0, s0
-	call	printnum
-
-	call	printimm
-	.asciz " bytes\r\n\n"
-
-	call	heapdump
-
-	call	visualiseheap
-
-	call	exit
-
-
 malloc:
 	addi	sp, sp, -6
 	sw		ra, (sp)
@@ -117,7 +98,23 @@ malloc:
 	
 	bnez	a2, 1f                              # If we found a good block, use it
 
-	tail	alloc_error_no_room
+	mv		s0, a0
+
+	call	printimm
+	.asciz "\r\n\nOut of memory while allocating "
+
+	mv		a0, s0
+	call	printnum
+
+	call	printimm
+	.asciz " bytes\r\n\n"
+
+	call	heapdump
+
+	call	visualiseheap
+
+	ebreak
+	call	exit
 
 1:
 	mv		a1, a2
@@ -126,10 +123,10 @@ malloc:
 
 	sub		t0, t0, a0                          # t0 = excess space
 	li		a2, 32
-	bltu	t0, a2, malloc_nosplit				# branch if it's not worth splitting
-	j		malloc_split
+	bltu	t0, a2, .malloc_nosplit				# branch if it's not worth splitting
+	j		.malloc_split
 
-malloc_nosplit:
+.malloc_nosplit:
 	lw		t0, alloc_header_nextfree(a1)       # Unchain this block from the free blocks chain
 	lw		a2, alloc_header_prevfree(a1)
 	beqz	a2, 1f
@@ -149,9 +146,9 @@ malloc_nosplit:
 
 	addi	a0, a1, alloc_header__size          # Return the block's data address
 
-	j		malloc_return
+	j		.malloc_return
 
-malloc_split:
+.malloc_split:
 	addi	t0, t0, -alloc_header__size         # Rewrite a1's block header with the size residue
 	sw		t0, alloc_header_blocksize(a1)
 
@@ -171,7 +168,7 @@ malloc_split:
 
 	addi	a0, a2, alloc_header__size          # Return the new block's data address
 
-malloc_return:
+.malloc_return:
 	lw		ra, (sp)
 	lw		s0, 2(sp)
 	lw		s1, 4(sp)
@@ -192,7 +189,7 @@ free:
 	lw		a2, alloc_header_nextfree(a1)       # check nextfree as well in case it was the first block in the free chain
 	beqz	a2, 2f
 1:
-	j		free_combine_prev
+	j		.free_combine_prev
 2:
 
 	# See if we can merge this block with the next one instead
@@ -204,7 +201,7 @@ free:
 	lw		a2, alloc_header_nextfree(a1)
 	beqz	a2, 2f
 1:
-	j		free_combine_next
+	j		.free_combine_next
 2:
 
 	# Neither neighbouring block is free, so we just add this block to the free chain and leave it fragmented
@@ -220,7 +217,7 @@ free:
 1:
 	ret
 
-free_combine_prev:
+.free_combine_prev:
 	# a0 = new block to free
 	# a1 = previous neighbour that is already free
 	#
@@ -265,10 +262,10 @@ free_combine_prev:
 	# chain back there.  a1 is still set correctly.  It will merge the blocks and then attempt
 	# to merge forwards again, which should fail but is harmless anyway.
 	mv		a0, a2
-	j		free_combine_prev
+	j		.free_combine_prev
 
 
-free_combine_next:
+.free_combine_next:
 	# a0 = new block to free
 	# a1 = next neighbour in memory, which is already free
 	#

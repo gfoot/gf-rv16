@@ -35,8 +35,8 @@ _start:
 	li		s1, 100
 	sw		s1, (sp)
 
-loop:
-	call	random
+.loop:
+	call	random3
 	li		t0, numentries-1
 	and		a0, a0, t0
 	slli	a0, a0, 1
@@ -44,7 +44,7 @@ loop:
 	add		s1, a0, s0
 	lw		a1, (s1)
 
-	beqz	a1, allocate
+	beqz	a1, .allocate
 
 	li		a0, 'F'
 	call	putchar
@@ -55,26 +55,26 @@ loop:
 	li		a0, 0
 	sw		a0, (s1)
 
-	j		loopend
+	j		.loopend
 
-allocate:
+.allocate:
 	li		a0, 'M'
 	call	putchar
 
-	call	random
+	call	random3
 	li		t0, 127
 	and		a0, a0, t0
 	bnez	a0, 1f
 
-	call	random
+	call	random3
 	li		t0, 1023
 	and		a0, a0, t0
-	li		t0, 2048
+	li		t0, 1024
 	add		a0, a0, t0
 	j		2f
 
 1:
-	call	random
+	call	random3
 	li		t0, 127
 	and		a0, a0, t0
 
@@ -85,10 +85,10 @@ allocate:
 	call	malloc
 	sw		a0, (s1)
 
-loopend:
+.loopend:
 	lw		s1, (sp)
 	addi	s1, s1, -1
-	bnez	s1, nodump
+	bnez	s1, .nodump
 
 #	call	heapdump
 	addi	sp, sp, -memstats__size
@@ -128,8 +128,8 @@ loopend:
 	call	printimm
 	.asciz "\r\n\n"
 
-nodump:
+.nodump:
 	sw		s1, (sp)
-	j		loop
+	j		.loop
 
 
