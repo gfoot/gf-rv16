@@ -1,0 +1,147 @@
+
+Register designations
+=====================
+
+     x0   zero   zero
+     x1    ra    return address
+     x2    sp    stack pointer
+     x3    s0    saved 0
+     x4    s1    saved 1
+     x5    a0    arg 0
+     x6    a1    arg 1
+     x7    a2    arg 2
+     x8    t0    temp 0
+
+
+Typical RISC-V convention
+=========================
+
+Functions must preserve the values of s0, s1, and sp, when they return.
+
+Narrow arguments are extended to 16 bits before being passed.  32-bit 
+arguments are passed as a pair of 16-bit arguments.  Wider arguments 
+are passed by 16-bit reference instead.
+
+Arguments are passed in a0, a1, a2, 0(sp), 2(sp), 4(sp), ...
+
+16-bit or narrower return values are returned in a0.  32-bit return
+values are returned with LSW in a0 and MSW in a1.  Wider return values
+require the caller to allocate space and pass a pointer to that space
+as if it were an extra 0th argument, in a0.  The callee is not
+required to preserve this pointer in a0 on exit.
+
+
+Stack frames
+============
+
+If a function uses s0 or s1 then it needs to save the old value on
+the stack first, and restore it before returning.
+
+If a function calls other functions then it needs to save the old
+value of ra on the stack, and restore it before returning.
+
+Thus the a stack frame typically holds ra, s0, and s1.  While a
+function may not need to save all three, in almost all cases once
+you're saving any of them the relative cost of saving the others is
+small.
+
+Leaf functions which do not use s0 or s1 do not need a stack frame.
+
+Non-leaf functions may freely use ra as a temporary register.
+
+If a function needs more storage than all of the registers, even after
+saving ra, s0, and s1 - or needs to preserve values from temporary
+registers across calls to other functions - then it must store these
+on the stack as well, in additional local variable storage space.  It
+usually makes sense to reserve this space in the stack frame at the
+beginning of the function.
+
+
+Alternate convention
+====================
+
+It might be nice for a caller to guarantee that a callee has a certain
+amount of stack space already allocated.  This means that leaf
+functions which wouldn't otherwise need to reserve stack space could
+still save s0 and s1, and use the space for local variable storage,
+without having to adjust sp.  It is a small saving but where a single
+caller calls multiple callees - or the same callee in a loop - it
+would avoid the need to adjust sp back and forth.
+
+In this scheme, on entry a function could assume that the bottom 8
+bytes of the stack - 0(sp), 2(sp), 4(sp), 6(sp) - are available to it.
+If it calls other functions then it will need to store its ra at
+least, e.g. in 6(sp), and it will also need to adjust sp so that when
+it calls other functions there are still 8 bytes of free stack space
+above sp.
+
+So in this scheme the typical stack frame setup for non-leaf functions
+is roughly the same except with different, larger offsets, while leaf
+functions could use up to 8 bytes of stack at a whim.
+
+A minor advantage in this scheme is that it could be possible to
+cheaply store a back-pointer to the next stack frame, when adjusting
+sp by up to 8 bytes:
+
+    sw    sp, (sp)          sw    sp, 2(sp)         
+    addi  sp, sp, -8        addi  sp, sp, -6     ... etc ...
+
+This would allow a debugger to navigate the stack without requiring
+knowledge of each function's stack pointer adjustment.
+
+
+
+
+
+	addi	sp, sp, -6
+	sw		ra, 4(sp)
+	sw		s0, 2(sp)
+	sw		s1, 0(sp)
+
+
+	mv		t0, sp
+	addi	sp, sp, -8
+	sw		ra, 6(sp)
+	sw		s0, 4(sp)
+	sw		s1, 2(sp)
+	sw		t0, 0(sp)
+
+
+	addi	sp, sp, -8
+	sw		ra, 6(sp)
+	sw		s0, 4(sp)
+	sw		s1, 2(sp)
+	addi	ra, sp, 8
+	sw		ra, 0(sp)
+
+
+
+	sw		ra, 0(sp)
+	mv		ra, sp
+	addi	sp, sp, -8
+	sw		s0, 6(sp)
+	sw		s1, 4(sp)
+	sw		ra, 2(sp)
+
+
+	sw		sp, 0(sp)
+	addi	sp, sp, -8
+	sw		ra, 6(sp)
+	sw		s0, 4(sp)
+	sw		s1, 2(sp)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
