@@ -1,0 +1,211 @@
+mnemonic               .	cyc	lst	high	bus A	bus B	mar_w	reg_r	reg_w	reg_win	aluop	pc_w	mem_w	
+                       .													
+JAL   ra, imm          . 	0		low	imm	pc			ra	pc	ad0	pc_w		
+                       .	1	1	high	imm	pc			ra	pc	adc	pc_w		
+                       .													
+J     imm              .	0		low	imm	pc					ad0	pc_w		
+                       .	1	1	high	imm	pc					adc	pc_w		
+                       .													
+JALR  ra, rs1, imm     .	0		low.	imm	regs		rs1	ra	pc	ad0	pc_w		
+                       .	1	1	high	imm	regs		rs1	ra	pc	adc	pc_w		
+                       .													
+JR    rs1, imm         .	0		low	imm	regs		rs1			ad0	pc_w		
+                       .	1	1	high	imm	regs		rs1			adc	pc_w		
+                       .													
+BEQZ  rs1, imm         .	0		low	0x00	regs	1	rs1			xor			
+                       .	1	nz	high	mar	regs	1	rs1			or			
+                       .	2		low	imm	pc					ad0	pc_w		
+                       .	3	1	high	imm	pc					adc	pc_w		
+                       .													
+BNEZ  rs1, imm         .	0		low.	0x00	regs	1	rs1			xor			
+                       .	1	z	high	mar	regs	1	rs1			or			
+                       .	2		low	imm	pc					ad0	pc_w		
+                       .	3	1	high	imm	pc					adc	pc_w		
+                       .													
+BEQ   rs1, rs2, imm    .	0		low	0x00	regs	1	rs2			xor
+                       .	1	nz	low	mar	regs	1	rs1			xor
+                       .	2		high	0x00	regs	1	rs2			xor			
+                       .	3	nz	high	mar	regs	1	rs1			xor			
+                       .	4		low	imm	pc					ad0	pc_w		
+                       .	5	1	high	imm	pc					adc	pc_w		
+                       .													
+BNE   rs1, rs2, imm    .	0		low	0x00	regs	1	rs2			xor
+                       .	1	z	low	mar	regs		rs1			xor
+                       .	2		high	0x00	regs	1	rs2			xor			
+                       .	3	z	high	mar	regs	1	rs1			xor			
+                       .	4		low	imm	pc					ad0	pc_w		
+                       .	5	1	high	imm	pc					adc	pc_w		
+                       .													
+BLT   rs1, rs2, imm    .	0		low	0xff	regs	1	rs2			xor
+                       .	1		low	mar	regs		rs1			ad1
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3		high	mar	regs	1	rs1			adc			
+                       .	4	z	low	0x00	marn	1				ad0			
+                       .	5		low	imm	pc					ad0	pc_w		
+                       .	6	1	high	imm	pc					adc	pc_w		
+                       .													
+BGE   rs1, rs2, imm    .	0		low	0xff	regs	1	rs2			xor
+                       .	1		low	mar	regs		rs1			ad1
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3		high	mar	regs	1	rs1			adc			
+                       .	4	nz	low	0x00	marn	1				ad0			
+                       .	5		low	imm	pc					ad0	pc_w		
+                       .	6	1	high	imm	pc					adc	pc_w
+                       .													
+BLTU  rs1, rs2, imm    .	0		low	0xff	regs	1	rs2			xor
+                       .	1		low	mar	regs		rs1			ad1
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3		high	mar	regs		rs1			adc			
+                       .	4	z	low	0x00		1				a+c			
+                       .	5		low	imm	pc					ad0	pc_w		
+                       .	6	1	high	imm	pc					adc	pc_w		
+                       .													
+BGEU  rs1, rs2, imm    .	0		low	0xff	regs	1	rs2			xor
+                       .	1		low	mar	regs		rs1			ad1
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3		high	mar	regs		rs1			adc			
+                       .	4	nz	low	0x00		1				a+c			
+                       .	5		low	imm	pc					ad0	pc_w		
+                       .	6	1	high	imm	pc					adc	pc_w		
+                       .													
+LB    rd, imm(rs1)     .	0		low	imm	regs	1	rs1			ad0			
+                       .	1		high	imm	regs	1	rs1			adc			
+                       .	2		low	0x00	mem	1		rd	alu	or			
+                       .	3	1	high	marsx				rd	alu	a+0			
+                       .													
+LBU   rd, imm(rs1)     .	0		low	imm	regs	1	rs1			ad0			
+                       .	1		high	imm	regs	1	rs1	rd	zero	adc			
+                       .	2	1	low	0x00	mem			rd	alu	or			
+                       .													
+LW    rd, imm(rs1)     .	0		low	imm	regs	1	rs1			ad0			
+                       .	1		high	imm	regs	1	rs1			adc			
+                       .	2		low	0x00	mem			rd	alu	or			
+                       .	3	1	high	0x00	mem			rd	alu	or			
+                       .													
+SB    rs2, imm(rs1)    .	0		low	imm	regs	1	rs1			ad0			
+                       .	1		high	imm	regs	1	rs1			adc			
+                       .	2	1	low		regs		rs2					mem_w	
+                       .													
+SW    rs2, imm(rs1)    .	0		low	imm	regs	1	rs1			ad0			
+                       .	1		high	imm	regs	1	rs1			adc			
+                       .	2		low		regs		rs2					mem_w	
+                       .	3	1	high		regs		rs2					mem_w	
+                       .													
+LUI   rd, imm          .	0		low	imm				rd	alu	a+0			
+                       .	1	1	high	imm				rd	alu	a+c			
+                       .													
+AUIPC rd, imm          .	0		low	imm	pc			rd	alu	ad0			
+                       .	1	1	high	imm	pc			rd	alu	adc			
+                       .													
+ADDI8 rd, rd, imm      .	0		low	imm	regs		rd	rd	alu	ad0			
+                       .	1	1	high	imm	regs		rd	rd	alu	adc			
+                       .													
+ADDI  rd, rs1, iwm     .	0		low	imm	regs		rs1	rd	alu	ad0			
+                       .	1	1	high	imm	regs		rs1	rd	alu	adc			
+                       .													
+ANDI  rd, rs1, imm     .	0		low	imm	regs		rs1	rd	alu	and			
+                       .	1	1	high	imm	regs		rs1	rd	alu	and			
+                       .													
+ORI   rd, rs1, imm     .	0		low	imm	regs		rs1	rd	alu	or			
+                       .	1	1	high	imm	regs		rs1	rd	alu	or			
+                       .													
+XORI  rd, rs1, imm     .	0		low	imm	regs		rs1	rd	alu	xor			
+                       .	1	1	high	imm	regs		rs1	rd	alu	xor			
+                       .													
+SRLI  rd, rs1, uimm    .	0		low	uimm		1				a+0			
+                       .	1		high	0x00	regs	1	rs1			xor			
+                       .	2		low	mar	regs		rs1	rd	alu	srl			
+                       .	3	1	high	0x00	regs		rs1	rd	alu	srl			
+                       .													
+SRAI  rd, rs1, uimm    .	0		low	uimm		1				a+0			
+                       .	1		high	0x00	regs	1	rs1			xor			
+                       .	2		low	mar	regs		rs1	rd	alu	sra			
+                       .	3	1	high	marsx	regs		rs1	rd	alu	sra			
+                       .													
+SLLI  rd, rs1, uimm    .	0		low	uimm		1				a+0			
+                       .	1		low	0x00	regs	1	rs1			xor			
+                       .	2		high	mar	regs		rs1	rd	alu	shl			
+                       .	3	1	low	0x00	regs		rs1	rd	alu	shl			
+                       .													
+SLTI  rd, rs1, imm     .	0		low	imm	regs		rs1			ad1			
+                       .	1		high	imm	regs	1	rs1	rd	zero	adc			
+                       .	2	1	low	0x00	marn			rd	alu	ad0			
+                       .													
+SLTIU rd, rs1, uimm    .	0		low	uimm	regs		rs1			ad1			
+                       .	1		high	0x00	regs	1	rs1	rd	zero	adc			
+                       .	2	1	low	0x00				rd	alu	a+c			
+                       .													
+ADD   rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1	rd	alu	ad0			
+                       .	2		high	0x00	regs	1	rs2			xor			
+                       .	3	1	high	mar	regs		rs1	rd	alu	adc			
+                       .													
+SUB   rd, rs1, rs2     .	0		low	0xff	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1	rd	alu	ad1			
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3	1	high	mar	regs		rs1	rd	alu	adc			
+                       .													
+AND   rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1	rd	alu	and			
+                       .	2		high	0x00	regs	1	rs2			xor			
+                       .	3	1	high	mar	regs		rs1	rd	alu	and			
+                       .													
+OR    rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1	rd	alu	or			
+                       .	2		high	0x00	regs	1	rs2			xor			
+                       .	3	1	high	mar	regs		rs1	rd	alu	or			
+                       .													
+XOR   rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1	rd	alu	xor			
+                       .	2		high	0x00	regs	1	rs2			xor			
+                       .	3	1	high	mar	regs		rs1	rd	alu	xor			
+                       .													
+SLT   rd, rs1, rs2     .	0		low	0xff	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1			ad1			
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3		high	mar	regs	1	rs1	rd	zero	adc			
+                       .	4	1	low	0x00	marn			rd	alu	ad0			
+                       .													
+SLTU  rd, rs1, rs2     .	0		low	0xff	regs	1	rs2			xor			
+                       .	1		low	mar	regs		rs1			ad1			
+                       .	2		high	0xff	regs	1	rs2			xor			
+                       .	3		high	mar	regs	1	rs1	rd	zero	adc			
+                       .	4	1	low	0x00				rd	alu	a+c			
+                       .													
+SRL   rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		high	0x00	regs	1	rs1			xor			
+                       .	2		low	mar	regs		rs1	rd	alu	srl			
+                       .	3	1	high	0x00	regs		rs1	rd	alu	srl			
+                       .													
+SRA   rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		high	0x00	regs	1	rs1			xor			
+                       .	2		low	mar	regs		rs1	rd	alu	sra			
+                       .	3	1	high	marsx	regs		rs1	rd	alu	sra			
+                       .													
+SLL   rd, rs1, rs2     .	0		low	0x00	regs	1	rs2			xor			
+                       .	1		low	0x00	regs	1	rs1			xor			
+                       .	2		high	mar	regs		rs1	rd	alu	shl			
+                       .	3	1	low	0x00	regs		rs1	rd	alu	shl			
+                       .													
+SNEZ  rd, rs1          .	0		low	0xff	regs		rs1			ad0			
+                       .	1		high	0xff	regs		rs1	rd	zero	adc			
+                       .	2	1	low	0x00				rd	alu	a+c			
+                       .													
+SGTZ  rd, rs1          .	0		low	0xff	regs		rs1			ad0			
+                       .	1		high	0xff	regs		rs1	rd	zero	adc			
+                       .	2	1	low	0x00				rd	alu	a+c			
+                       .													
+NEG   rd, rs1          .	0		low	0xff	regs	1	rs1			xor
+                       .	1		low	mar				rd	alu	a+1	
+                       .	2		high	0xff	regs	1	rs1			xor	
+                       .	1	1	high	mar				rd	alu	a+c	
+                       .													
+MRET                   .	0		low	0x00	regs		mepc			ad0	pc_w		
+                       .	1	1	high	0x00	regs		mepc			adc	pc_w		
+                       .													
+                       .													
+ECALL                  .	0		low	0x03				mepc	pc	a+0	pc_w		
+                       .	1	1	high	0x00				mepc	pc	a+c	pc_w		
+                       .													
+(IRQ)                  .	0		low	0x05				mepc	pc	a+0	pc_w		
+                       .	1	1	high	0x00				mepc	pc	a+c	pc_w		

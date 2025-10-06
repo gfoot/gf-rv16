@@ -1,0 +1,59 @@
+digraph G {
+  rankdir="UD"
+  
+  
+  subgraph cluster_alu {
+      alu [shape="diamond"]
+      bus_A [color="green"]
+      bus_B [color="green"]
+      bus_C [color="green"]
+      
+      bus_A -> alu [color="green"]
+      bus_B -> alu [color="green"]
+      alu -> bus_C [color="green"]
+  }
+  
+  subgraph cluster_A {
+      imm
+      const
+      mar_r
+      mar_r_sx
+  }
+  
+  subgraph cluster_B {
+    pc_r
+    reg_r
+    mem_r
+    mar_r_n
+  }
+  
+  subgraph cluster_C {  
+    marL [ shape=rectangle ]
+    marH [ shape=rectangle ]
+    marH -> marL   [constraint=false,color=green]
+    pc_w
+    reg_w
+  }
+
+  imm -> bus_A
+  const -> bus_A
+  mar_r -> bus_A [color="blue"]
+  mar_r_sx -> bus_A [color="blue"]
+
+  mar_r_n -> bus_B [color="blue"]
+  mem_r -> bus_B [color="blue"]
+  pc_r -> bus_B [color="blue"]
+  reg_r -> bus_B [color="blue"]
+  
+    
+  bus_B -> mem_w [color="green"]
+
+  bus_C -> marH [color="green"]
+  bus_C -> reg_w [color="blue"]
+  
+  bus_C -> pc_w [color="green"]
+
+  pc_r -> reg_w [color="blue"]
+  zero -> reg_w
+
+}
