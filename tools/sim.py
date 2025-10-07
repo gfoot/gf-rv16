@@ -50,7 +50,7 @@ class Sim:
 
 
 	def __init__(self, simulation, memory, entry, log, debuginfo):
-		self.state = simulation.State(self)
+		self.state = simulation.State(self, cycletrace)
 		self.state.setpc(entry)
 
 		self.instructiondispatcher = simulation.InstructionDispatcher()

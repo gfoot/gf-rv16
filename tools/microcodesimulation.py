@@ -81,23 +81,14 @@ with open("doc/microcode.txt") as fp:
 		microcode.append(MicrocodeEntry(fields))
 
 
-if False:
+def format16(lo,hi):
+	return f"{hi:02X}{lo:02X}"
 
-	print("Microcode instructions:")
-	for instr,(mcaddr,argtypes,argnames) in instrs.items():
-		print(f"{instr:7} {argtypes:4} {argnames}")
-
-
-	print()
-	print("Microcode:")
-	for i,mc in enumerate(microcode):
-		instr = ""
-		for k,v in instrs.items():
-			if v[0] == i:
-				instr = k
-		print(f"{i:3X}{chr(9)}{instr}{chr(9)}{mc}")
-
-	print()
+def formatbus(busval):
+	if busval is not None:
+		return f"{busval:02X}"
+	else:
+		return "--"
 
 
 class MicrocodeSimulation:
@@ -115,13 +106,13 @@ class MicrocodeSimulation:
 
 			argtypes = argtypes.replace('o', 'i')
 
-			assert instr in instrs.keys(), f"Instruction not in microcode: '{instr}'"
-			#return False
+			if instr not in instrs.keys():
+				return False
 
 			mcaddr, mcargtypes, mcargnames = instrs[instr]
 
-			assert mcargtypes == argtypes, f"Arg type mismatch with microcode for '{instr}': '{argtypes}' should be '{mcargtypes}'"
-			#return False
+			if mcargtypes != argtypes:
+				return False
 
 			argsdict = {}
 			for name,arg in zip(mcargnames, args):
@@ -129,8 +120,16 @@ class MicrocodeSimulation:
 
 			startaddr = mcaddr
 
-			st.env.cycletrace(f"{instr:5} {argtypes:3} {argsdict}")
-			while st.cycle(microcode[mcaddr], argsdict, f"${mcaddr:02X} : {mcaddr-startaddr}"):
+			if st.trace:
+				st.env.cycletrace(f"{instr:5} {argtypes:3} {argsdict}")
+
+			traceprefix = ""
+
+			while True:
+				if st.trace:
+					traceprefix = f"${mcaddr:02X} : {mcaddr-startaddr}"
+				if not st.cycle(microcode[mcaddr], argsdict, traceprefix):
+					break
 				mcaddr += 1
 
 			return True
@@ -138,8 +137,9 @@ class MicrocodeSimulation:
 
 	class State:
 
-		def __init__(self, env):
+		def __init__(self, env, trace):
 			self.env = env
+			self.trace = trace
 
 			self.regs = [ [0] * 8, [0] * 8 ]
 			self.pc = [ 0, 0 ]
@@ -205,6 +205,8 @@ class MicrocodeSimulation:
 				bus_b = self.pc[hilo]
 			elif mc.bus_b == "marn":
 				bus_b = self.mar[1] >> 7
+			elif mc.bus_b == "zero":
+				bus_b = 0
 			elif mc.bus_b == "":
 				bus_b = None
 			else:
@@ -214,15 +216,12 @@ class MicrocodeSimulation:
 			if   mc.aluop == "ad0": value = bus_a + bus_b              ; bus_c = value & 0xff ; self.carry = value > 0xff
 			elif mc.aluop == "ad1": value = bus_a + bus_b + 1          ; bus_c = value & 0xff ; self.carry = value > 0xff
 			elif mc.aluop == "adc": value = bus_a + bus_b + self.carry ; bus_c = value & 0xff ; self.carry = value > 0xff
-			elif mc.aluop == "a+0": value = bus_a                      ; bus_c = value & 0xff ; self.carry = value > 0xff
-			elif mc.aluop == "a+1": value = bus_a + 1                  ; bus_c = value & 0xff ; self.carry = value > 0xff
-			elif mc.aluop == "a+c": value = bus_a + self.carry         ; bus_c = value & 0xff ; self.carry = value > 0xff
 			elif mc.aluop == "and": bus_c = bus_a & bus_b
 			elif mc.aluop == "or" : bus_c = bus_a | bus_b
 			elif mc.aluop == "xor": bus_c = bus_a ^ bus_b
-			elif mc.aluop == "sll": value = (bus_b << 8) + bus_a ; value <<= self.mar[0] ; bus_c = (value >> 8) & 0xff
-			elif mc.aluop == "srl": value = (bus_a << 8) + bus_b ; value >>= self.mar[0] ; bus_c = value & 0xff
-			elif mc.aluop == "sra": value = (bus_a << 8) + bus_b ; value -= (value & 0x8000) << 1 ; value >>= self.mar[0] ; bus_c = value & 0xff
+			elif mc.aluop == "sll": value = (bus_b << 8) + bus_a ; bus_c = (value << self.mar[0] >> 8) & 0xff
+			elif mc.aluop == "srl": value = (bus_a << 8) + bus_b ;                                  bus_c = (value >> self.mar[0]) & 0xff
+			elif mc.aluop == "sra": value = (bus_a << 8) + bus_b ; value -= (value & 0x8000) << 1 ; bus_c = (value >> self.mar[0]) & 0xff
 			elif mc.aluop: assert False, f"Invalid aluop: '{mc.aluop}'"
 
 			if mc.mar_w:
@@ -252,17 +251,15 @@ class MicrocodeSimulation:
 				addr = (self.mar[1] << 8) + self.mar[0] + hilo
 				self.memwriteb(addr, bus_b) # Note - not bus_c
 
-			def format16(lo,hi): return f"{hi:02X}{lo:02X}"
 
-			pcstr = format16(self.pc[0], self.pc[1])
-			marstr = format16(self.mar[0], self.mar[1])
-			regsstr = ' '.join([format16(self.regs[0][i], self.regs[1][i]) + (" " if i==3 else "") for i in range(8)])
+			if self.trace:
+			    pcstr = format16(self.pc[0], self.pc[1])
+			    marstr = format16(self.mar[0], self.mar[1])
+			    regsstr = ' '.join([format16(self.regs[0][i], self.regs[1][i]) + (" " if i==3 else "") for i in range(8)])
+			    busstr = f"a:{formatbus(bus_a)} b:{formatbus(bus_b)} c:{formatbus(bus_c)}"
 
-			def formatbus(busval): return f"{busval:02X}" if busval is not None else "--"
+			    self.env.cycletrace(tracestr + f"  pc:{pcstr}  mar:{marstr}  regs: {regsstr}   {busstr}  {mc}")
 
-			busstr = f"a:{formatbus(bus_a)} b:{formatbus(bus_b)} c:{formatbus(bus_c)}"
-
-			self.env.cycletrace(tracestr + f"  pc:{pcstr}  mar:{marstr}  regs: {regsstr}   {busstr}  {mc}")
 
 			if mc.endz and bus_c == 0:
 				return False
@@ -271,4 +268,69 @@ class MicrocodeSimulation:
 				return False
 
 			return True
+
+
+if __name__ == "__main__":
+
+	# Print statistics about the microcode - which combinations of signals are required
+	#
+	# This informs how it could be packed into a ROM
+	#
+	# I think in conclusion there are about 16 bits worth of entropy:
+	#
+	#	Group 0 - 4 bits - aluop, mem_w, mar_w, pc_w
+	#	Group 1 - 2 bits - rw, ri
+	#	Group 2 - 3 bits - bus b sources
+	#	Group 3 - 2 bits - end conditions
+	#	Group 4 - 3-4 bits - bus a sources, maybe rw on/off
+	#	Group 5 - 1 bit - high/low
+	#
+	# It depends a bit what happens with the constants in group 4, perhaps some can be 
+	# done as immediates in the instruction and save a bit
+	#
+	# But this is the approximate complexity
+	#
+	# In group 1, ri_zero can also be derived from mar_w and high, hence only 2 bits; or
+	# if an "rw on/off" bit is generated in group 4, it also saves the extra state in 
+	# group 1 for no-register-write.  ("ri_zero" is also only present to save one cycle 
+	# in a few instructions, so could be removed for little loss.)
+
+	frequencies = [{},{},{},{},{},{}]
+	for mc in microcode:
+
+		flags = ([],[],[],[],[],[])
+
+		if mc.aluop: flags[0].append("aluop_" + mc.aluop)
+		if mc.mar_w: flags[0].append("mar_w")
+		if mc.pc_w: flags[0].append("pc_w")
+		if mc.mem_w: flags[0].append("mem_w")
+
+		if mc.reg_w: flags[1].append("rw_" + mc.reg_w)
+		if mc.reg_win: flags[1].append("ri_" + mc.reg_win)
+
+		flags[2].append("b_" + mc.bus_b)
+		if mc.reg_r: flags[2].append("rr_" + mc.reg_r)
+
+		if mc.endz: flags[3].append("endz")
+		if mc.endnz: flags[3].append("endnz")
+
+		flags[4].append("a_" + mc.bus_a)
+		#if mc.reg_w: flags[4].append("rw")
+
+		if mc.high: flags[5].append("high")
+
+
+		for group in range(len(frequencies)):
+			s = " ".join(flags[group])
+
+			if s not in frequencies[group].keys():
+				frequencies[group][s] = 1
+			else:
+				frequencies[group][s] += 1
+
+	for group in range(len(frequencies)):
+		print(f"\nGroup {group}")
+
+		for i,(v,k) in enumerate(sorted([(v,k) for k,v in frequencies[group].items()])):
+			print(f"{i:3} {v:3} {k}")
 
