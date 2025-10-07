@@ -2,6 +2,9 @@ import assem
 import os
 import sys
 
+from highlevelsimulation import HighLevelSimulation
+from microcodesimulation import MicrocodeSimulation
+
 
 LOGLEVEL_ERROR = 0
 LOGLEVEL_INFO = 1
@@ -34,53 +37,6 @@ class Log:
 
 class Sim:
 
-	class InstructionSet:
-
-		def add_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) + st.sreg(rs2))
-		def sub_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) - st.sreg(rs2))
-		def and_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) & st.sreg(rs2))
-		def or_rrr  (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) | st.sreg(rs2))
-		def xor_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) ^ st.sreg(rs2))
-		def sll_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) << st.sreg(rs2))
-		def srl_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) >> st.sreg(rs2))
-		def sra_rrr (st, rd, rs1, rs2): st.setreg(rd, st.ureg(rs1) >> st.sreg(rs2))
-		def slt_rrr (st, rd, rs1, rs2): st.setreg(rd, st.sreg(rs1) < st.sreg(rs2))
-		def sltu_rrr(st, rd, rs1, rs2): st.setreg(rd, st.ureg(rs1) < st.ureg(rs2))
-
-		def addi_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) + imm)
-		def andi_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) & imm)
-		def ori_rri  (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) | imm)
-		def xori_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) ^ imm)
-		def slli_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) << imm)
-		def srli_rri (st, rd, rs1, imm): st.setreg(rd, st.ureg(rs1) >> imm)
-		def srai_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) >> imm)
-		def slti_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) < imm)
-		def sltiu_rri(st, rd, rs1, imm): st.setreg(rd, st.ureg(rs1) < imm)
-
-		def beq_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == st.sreg(rs2))
-		def bne_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != st.sreg(rs2))
-		def blt_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  st.sreg(rs2))
-		def bltu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) <  st.ureg(rs2))
-		def bge_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= st.sreg(rs2))
-		def bgeu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) >= st.ureg(rs2))
-
-		def lui_ri  (st, rd, imm): st.unimp() if imm == 0 else st.setreg(rd, imm)
-		def auipc_ri(st, rd, imm): st.setreg(rd, imm + st.getpc())
-
-		def j_i     (st,          imm):                                                     st.setpc(st.getpc() + imm - 2)
-		def jal_ri  (st, rd,      imm):                     st.setreg(rd, st.getpc() + 2) ; st.setpc(st.getpc() + imm - 2)
-		def jalr_rri(st, rd, rs1, imm): dest=st.sreg(rs1) ; st.setreg(rd, st.getpc() + 2) ; st.setpc(dest       + imm - 2)
-		def jr_ri   (st,     rs1, imm): dest=st.sreg(rs1) ;                                 st.setpc(dest       + imm - 2)
-
-		def lb_ror (st,  rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
-		def lbu_ror(st,  rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)) & 0xff)
-		def lw_ror (st,  rd, imm, rs1): st.setreg(rd, st.memreadw(imm + st.sreg(rs1)))
-		def sb_ror (st, rs1, imm, rs2): st.memwriteb(imm + st.sreg(rs2), st.sreg(rs1))
-		def sw_ror (st, rs1, imm, rs2): st.memwritew(imm + st.sreg(rs2), st.sreg(rs1))
-
-		def ecall_(st): st.ecall()
-
-
 	class DebugInfo:
 		def __init__(self, debuginfo):
 			self.symboldict = debuginfo
@@ -93,14 +49,15 @@ class Sim:
 			return None
 
 
-	def __init__(self, memory, entry, log, debuginfo):
+	def __init__(self, simulation, memory, entry, log, debuginfo):
+		self.state = simulation.State(self)
+		self.state.setpc(entry)
+
+		self.instructiondispatcher = simulation.InstructionDispatcher()
 
 		self.memory = memory
-		self.pc = entry
 		self.log = log
 		self.debuginfo = Sim.DebugInfo(debuginfo)
-
-		self.regs = [0] * 9
 
 		self.stop = False
 
@@ -111,24 +68,6 @@ class Sim:
 			self.ecall_gets,
 		]
 
-
-	def setreg(self, num, value):
-		assert num > 0 and num < len(self.regs)
-		self.regs[num] = value & 0xffff
-
-	def sreg(self, num):
-		v = self.regs[num]
-		return v if v < 0x8000 else v-0x10000
-
-	def ureg(self, num):
-		return self.regs[num]
-
-	def getpc(self):
-		return self.pc
-
-	def setpc(self, value, cond=True):
-		if cond:
-			self.pc = value
 
 	def unimp(self):
 		self.exception(2, self.pc, f"Illegal instruction (unimp)")
@@ -192,45 +131,53 @@ class Sim:
 
 		self.memory[addr // 2] = ("data", None, value & 0xffff)
 
+	def cycletrace(self, text):
+		if cycletrace:
+			self.log.trace(f"    {text}")
+
 
 	def format_arg(self, arg, typ):
 		if typ == "r":
 			return f"x{arg}"
-		else:
+		elif arg >= -64 and arg <= 64:
 			return f"{arg}"
+		else:
+			return f"${arg:04x}"
 
 	def step(self):
-		instr,argtypes,args = self.memory[self.pc//2]
+		instr,argtypes,args = self.memory[self.state.getpc()//2]
 
 		if instr == "none" or instr == "data":
-			self.exception(1, self.pc, f"Executing non-code ({instr}, {args})")
+			self.exception(1, self.state.getpc(), f"Executing non-code ({instr}, {args})")
 
 		argsfmt = ', '.join([f"{self.format_arg(arg,typ)}" for arg,typ in zip(args,argtypes)])
-		regsfmt = "  ".join([" ".join([f"{self.regs[n+1]:04x}" for n in range(m,m+4)]) for m in range(0,len(self.regs)-1,4)])
-		self.log.trace(f"{self.pc:04x}   {instr:<6}  {argsfmt:<20}   {regsfmt}")
+		regsfmt = "  ".join([" ".join([f"{self.state.ureg(n+1):04x}" for n in range(m,m+4)]) for m in range(0,8,4)])
+		self.log.trace(f"{self.state.getpc():04x}   {instr:<6}  {argsfmt:<20}   {regsfmt}")
 
 
 		# Apply decoding fixups
 		if instr == "ori" and args[1] == 2:
-			args[1] = 0
+			assert argtypes == "rri"
+			instr,argtypes,args = "li", "ri", [args[0], args[2]]
 
 		if instr in { "beq", "bne", "bge", "blt" } and args[1] == args[0]:
-			args[1] = 0
+			assert argtypes == "rri"
+			instr,argtypes,args = instr+"z", "ri", args[1:]
 
-		handler = getattr(self.InstructionSet, instr+"_"+argtypes, None)
-		if handler:
-			handler(self, *args)
-		else:
-			self.exception(2, self.pc, f"Unsupported instruction '{instr}' with argtypes '{argtypes}'")
 
-		self.pc += 2
+		# Dispatch the instruction
+		if not self.instructiondispatcher.dispatch(self.state, instr, argtypes, args):
+			self.exception(2, self.state.getpc(), f"Unsupported instruction '{instr}' with argtypes '{argtypes}'")
+
+
+		self.state.setpc(self.state.getpc() + 2)
 
 		return not self.stop
 
 
 	def backtrace(self):
-		addr = self.getpc()
-		sp = self.ureg(2)
+		addr = self.state.getpc()
+		sp = self.state.ureg(2)
 
 		stackframes = []
 
@@ -258,7 +205,7 @@ class Sim:
 				sp = (sp + framesize) & 0xffff
 			elif len(stackframes) == 1:
 				# The very first function might be a leaf function that doesn't need a stack frame
-				addr = self.ureg(1) # ra
+				addr = self.state.ureg(1) # ra
 			else:
 				break
 
@@ -267,13 +214,13 @@ class Sim:
 
 	def exception(self, index, addr, message):
 
-		pc = self.getpc()
-		sp = self.ureg(2)
+		pc = self.state.getpc()
+		sp = self.state.ureg(2)
 
 		exceptionstring = f"Exception {index:02X} at address {addr:04x}: {message}"
 
 		regsstr = f"  pc = {pc:04X}  "
-		regsstr += "  ".join([f"x{i} = {self.ureg(i):04X}" for i in range(1, 9)])
+		regsstr += "  ".join([f"x{i} = {self.state.ureg(i):04X}" for i in range(1, 9)])
 
 		def formatstack(addr, count):
 			values = []
@@ -311,16 +258,16 @@ class Sim:
 
 
 	def ecall(self):
-		func = self.sreg(7)
+		func = self.state.sreg(7)
 
 		if func < 0 or func >= len(self.ecall_dispatch):
-			self.exception(50, self.pc-2, f"Invalid ecall number {func}")
+			self.exception(50, self.state.getpc(), f"Invalid ecall number {func}")
 
 		self.ecall_dispatch[func]()
 
 
 	def ecall_print(self):
-		i = self.regs[5]
+		i = self.state.ureg(5)
 		c = 1
 		s = ""
 		while c:
@@ -331,34 +278,41 @@ class Sim:
 		sys.stdout.write(s)
 
 	def ecall_putchar(self):
-		i = self.regs[5]
+		i = self.state.ureg(5)
 		sys.stdout.write(chr(i & 0xff))
 
 	def ecall_exit(self):
 		self.stop = True
 
 	def ecall_gets(self):
-		p = self.regs[5]
-		size = self.regs[6]
+		p = self.state.ureg(5)
+		size = self.state.ureg(6)
 		text = input()
 		text = text[:size-1]
 		for c in text:
 			self.memwriteb(p,ord(c))
 			p += 1
 		self.memwriteb(p,0)
-		self.regs[6] = p - self.regs[5]
+		self.setreg(6, p - self.ureg(5))
 
 
 if __name__ == "__main__":
 
 	filename = None
 	trace = False
+	highlevel = False
+	cycletrace = False
 
 	for arg in sys.argv[1:]:
 		if arg == "--debug":
 			assem.DEBUG = 1
 			trace = True
 		elif arg == "--trace":
+			trace = True
+		elif arg == "--hl":
+			highlevel = True
+		elif arg == "--cycletrace":
+			cycletrace = True
 			trace = True
 		elif filename is None:
 			filename = arg
@@ -390,7 +344,12 @@ if __name__ == "__main__":
 		tracefile = open(tracefilename, "w")
 		log.settracefile(tracefile)
 
-	sim = Sim(code, entry, log, debuginfo)
+	if highlevel:
+		simulation = HighLevelSimulation
+	else:
+		simulation = MicrocodeSimulation
+
+	sim = Sim(simulation, code, entry, log, debuginfo)
 		
 	while sim.step():
 		pass
