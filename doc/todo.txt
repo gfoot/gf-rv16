@@ -1,0 +1,33 @@
+Some things to do at some point
+
+ISA design
+ * Make stats.py group pairs of instructions together where they are working around limited immediate widths
+ * Redo the ISA encoding and pin down immediate widths
+ * Encode immediate widths in the microcode
+ * Make the microcode simulator check parameters are reasonable
+ * Make the assembler output binary, and make the simulator read it
+ * Write a thorough instruction set test suite
+
+System software
+ * Make the code use MMIO instead of ecalls for I/O
+ * On-device ebreak/callstack handling
+
+Assembler
+ * Should listing files show literal interpretation of encoded instructions, or logical purpose?
+	i.e. slli x8,x8,16 or li x8,0?  ori x1,x2,12 or li x1,12?  bne x5,x5,6 or bnez x5,6?
+ * Should listing files show branches and jumps with absolute or relative addresses?
+	pseudotest.s expects relative addresses
+ * Should it use the list of PC-relative instructions, or be more dynamic about that?
+
+Simulator/debugging
+ * MMIO support
+ * IRQ generation and correct IRQ handler simulation
+ * Core dump and offline debugger
+ * REPL for simulator (single step, breakpoints, etc)
+ * Log memory reads and writes in traces
+
+Hardware design
+ * Design and validate the instruction fetch/program counter electronics
+ * Try embedding control signals in PLDs
+ * Finish ALU design
+

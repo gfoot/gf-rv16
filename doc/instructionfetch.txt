@@ -1,0 +1,268 @@
+
+The instruction fetch is a bit tricky as RISC-V wants PC-relative
+immediates to be applied based on the address of the current
+instruction, and interrupts/ECALL/EBREAK/etc to store the address of
+the current instruction in MEPC, but JAL/JALR need to store the
+address of the next instruction in RA - so we either need to add or
+subtract 2 in the microcode, or have both values available in some
+other way.
+
+In addition if PC is incremented at the end of the instruction, any
+instruction which modifies PC is tricky because you need to disable
+the increment (or subtract 2 during the operation so that when it is
+incremented at the end it's in the right place).
+
+For this last issue, at the moment I have made the simulator
+proactively subtract 2 from certain immediates ("jimm") that are going
+to be added to the program counter, but that's not how actual hardware
+should work, I'll come back to this below though.
+
+For the first issue - in the microcode I have made JAL and JALR refer
+to "pcnext", meaning PC+2, for loading RA.  In hardware PCNEXT could
+be a counter IC that increments during instruction fetch, with PC
+being a register set from it before the increment:
+
+    1. Instruction Fetch cycle 0:
+        a. Read instruction low byte from mem[PCNEXT]
+        b. Set PC := PCNEXT
+        c. Increment PCNEXT
+    2. Instruction Fetch cycle 1:
+        a. Read instruction high byte from mem[PCNEXT]
+        b. Increment PCNEXT
+    3. Next instruction cycle 0
+
+(In practice PCNEXT would probably just not store the bottom bit, and
+only be incremented once, but for clarity here I'm showing it
+incremented twice.)
+
+Now on entry to any instruction PC will equal the address of the
+instruction and PCNEXT will be two higher, and JAL/JALR will set RA
+based on PCNEXT while PC-based arithmetic can be done based on PC.
+
+Instructions that modify PC then need to set PCNEXT to the desired PC
+value - rather than setting PC - and the instruction fetch will then
+update PC before fetching the instruction from the correct address.
+This seems quite tidy and avoids contention between setting or
+incrementing PCNEXT.  However...
+
+# Pipelining
+
+It would be good to overlap the instruction fetch with execution of
+the previous instruction.  The first two cycles of each instruction
+are free of memory operations so ideal for this.  A second layer PC
+register could be used for this purpose, so PC is a register set from
+PCNEXT and PCNEXT is a register set from PCNEXTNEXT which is a
+counter.
+
+For example, after the instruction at ADDR-2 completes, PC=ADDR-2,
+PCNEXT=ADDR, PCNEXTNEXT=ADDR+2 and the instruction at ADDR has already
+been fetched into the instruction register.  Then:
+
+    1. Instruction at ADDR begins cycle 0
+        a. Read instruction low byte from mem[PCNEXTNEXT] (ADDR+2)
+        b. Set PC := PCNEXT (ADDR)
+        c. Set PCNEXT := PCNEXTNEXT (ADDR+2)
+        d. Increment PCNEXTNEXT (ADDR+3)
+    2. Instruction at ADDR begins cycle 1
+        a. Read instruction high byte from mem[PCNEXTNEXT] (ADDR+3)
+        b. Increment PCNEXTNEXT (ADDR+4)
+
+Now the instruction can complete as usual and everything is ready to
+execute the one at ADDR+2.  One issue here is if the instruction at
+ADDR reads from pc or pcnext during cycles 0 or 1.  In the example
+above they are updated at the end of cycle 0 so during cycle 0 they
+will have the old values.  It means that the microcode might need to
+read from a different location in that case, in particular from
+PCNEXTNEXT.
+
+It may be possible to update PC and PCNEXT at the start of cycle 0
+(i.e. at the end of the last cycle of the previous instruction) to get
+around this - it would be nice to avoid the microcode needing options
+to read from three different versions of the program counter.  So
+let's assume we can do that.
+
+Modifications to PC could be applied directly to PCNEXTNEXT but it
+would take two instructions before PC and PCNEXT would catch up.  In
+any case it's necessary to execute a dummy instruction to repopulate
+the instruction register.  So let's say on any write to the program
+counter we write PCNEXTNEXT and flag for a dummy instruction to run
+(e.g. NOP).  At the end of the instruction that performed the write,
+PC will be set to the old value of PCNEXT (now out of date) and PCNEXT
+will be set to PCNEXTNEXT (the desired next instruction to run).  We
+will then execute the NOP instruction to get everything back in order:
+
+    1. NOP cycle 0 begins
+        a. Read instruction low byte from mem[PCNEXTNEXT]
+        b. PCNEXTNEXT := PCNEXTNEXT + 1
+    2. NOP cycle 1 begins
+        a. Read instruction high byte from mem[PCNEXTNEXT]
+        b. PCNEXTNEXT := PCNEXTNEXT + 1
+        c. PC := PCNEXT (ADDR)
+	d. PCNEXT := PCNEXTNEXT (ADDR+2)
+    3. Instruction at ADDR begins cycle 0
+
+Note that 2.c and 2.d happen there because it is the final cycle of
+the NOP instruction - if the instruction were longer they'd happen on
+a later cycle.  There is a race between 2.b and 2.d though - 2.b needs
+to happen first but also can't happen until 2.a is complete.  I'll
+return to this in the next section.
+
+This seems to get PC and PCNEXT to have the right values in time for
+the execution of the instruction at ADDR.  However there is one more
+awkward case here, and that's where an interrupt occurs during an
+instruction which itself modifies the program counter.
+
+The interrupt would normally cause the next executed instruction to be
+IRQ, which saves the value of PC, which in turn is meant to be the
+address of the instruction which would have run if the interrupt
+didn't occur.  In the case where this dummy NOP was due, however, PC
+is not set correctly and the wrong return value would be used.  To fix
+this it may be necessary to either delay the interrupt in this case,
+or make PC-writing cycles write to PCNEXT as well as PCNEXTNEXT.  I'm
+not sure if that last one is possible though as some instructions need
+to read PCNEXT simultaneously while writing PC.
+
+Of course the IRQ instruction itself causes a jump, and will set up
+its own dummy NOP to cover the next instruction fetch, but that should
+function similarly to any jump instruction.
+
+## Exact timing of increment/copy/instruction fetch/pc modification
+
+The two-cycle example just above shows a lot of things happening in
+the second cycle.  Usually I'd time 2.c and 2.d to occur at the very
+end of the cycle (start of next cycle) but when can 2.b happen?  It
+has to complete before 2.d, but it modifies the address used in 2.a.
+
+I think we need an extra latch for that address here - which is fine
+as we need something with tristate outputs anyway.  We can then latch
+the address at the start of the cycle, increment PCNEXTNEXT mid-cycle,
+and update PC and PCNEXT at the end of the cycle.  This would also
+apply in cycle 0.
+
+    1. Instruction cycle 0
+        start: copy PCNEXTNEXT to MAB (memory address bus driver IC)
+        mid: begin memory read into instruction register low byte
+        mid: PCNEXTNEXT := PCNEXTNEXT + 1
+        end: end memory read
+    2. Instruction cycle 1
+        start: copy PCNEXTNEXT to MAB
+        mid: begin memory read into instruction register high byte
+        mid: PCNEXTNEXT := PCNEXTNEXT + 1
+        end: end memory read
+        end: PC := PCNEXT
+        end: PCNEXT := PCNEXTNEXT
+
+Again it's possible/likely that PCNEXTNEXT won't actually store the
+bottom bit, in which case it only needs to be incremented during cycle
+1, not cycle 0, and the bottom bit of MAB would come from the low bit
+of the cycle number.
+
+## PC modification in first two cycles
+
+Looping back around to the "however..." a long way above - in this
+scheme, it is possible that an instruction will modify the program
+counter during the instruction fetch for another instruction.  We
+don't really care about the fetch itself as it's out-of-date if PC is
+being modified, but we do need to ensure that the PC modification
+takes priority over the increments that the instruction fetch will do
+to PCNEXTNEXT.
+
+The modification would naturally take place right at the end of the
+cycle, which fortunately already separates it from the PCNEXTNEXT
+increment which happens mid-cycle.  However it means some potential
+issues with the PCNEXT setting in two-cycle instructions that do this.
+
+Setting PCNEXTNEXT asynchronously throughout phase 2 would seem to
+mitigate this.  Alternatively set PCNEXT as well as PCNEXTNEXT but
+that's kind of complicated because then PCNEXT's source data comes
+from different locations at different times.
+
+Here's a timing diagram showing a two-cycle operation executing in
+hardware cycles 422-423 from address 0230, while the next instruction
+is fetched from 0232,0233.  That next instruction executes from cycle
+424 onwards.
+
+  HCYC   /      422      /      423      /      424      /      425
+
+  PHI1 __/""""""\________/""""""\________/""""""\________/""""""\
+
+  PHI2 "\________/""""""\________/""""""\________/""""""\________
+
+  MAB     \ 0232          \ 0233
+
+  PCNN 0232       \ 0233          \ 0234
+
+  PCN     \ 0232                          \ 0234
+
+  PC      \ 0230                          \ 0232
+
+If the instruction at 0230 was more than two cycles then the PC and
+PCN changes would be delayed later than cycle 424.  Note that PC and
+PCN are valid with the correct values throughout the instruction's
+execution.
+
+Now a two-cycle instruction which modifies PC during the same two
+cycles, followed by a dummy NOP from cycle 424 to propagate the jump
+through to PC itself:
+
+  HCYC   /     422     /     423     /     424     /     425     /
+
+  PHI1 __/"""""\_______/"""""\_______/"""""\_______/"""""\_______/""
+
+  PHI2 "\_______/"""""\_______/"""""\_______/"""""\_______/"""""\___
+
+  MAB     \ 0232        \ 02D8        / 01D9        / 01DA
+
+  PCNN 0232      \ 0233        \ 02D9        \ 01DA        \ 01DB
+                  / 02D8        / 01D9
+
+  PCW  __________/"""""\_______/"""""\_____________________________
+
+  PCN     \ 0232                      \ 01D9                      \ 01DB
+
+  PC      \ 0230                      \ 0232                      \ 01D9
+
+PCW represents the asynchronous write operation to the PCNN counter.
+This has led to an erroneous address on MAB in cycle 423, which could
+have bad side effects, and the wrong value in PCNN and PCN by cycle
+424, due to the increment that happens in cycle 423.
+
+I think it would be necessary to prevent both loading MAB and
+incrementing PCNN if a PC-write cycle has executed during the current
+instruction.  Or, if the bottom bit is not stored, this problem also
+goes away as MAB only gets loaded on cycle 422, the bottom bit is
+faked after that, and PCNN also only gets incremented in cycle 422.
+So that's promising.
+
+Updated diagram:
+
+  HCYC   /     422     /     423     /     424     /     425     /
+
+  PHI1 __/"""""\_______/"""""\_______/"""""\_______/"""""\_______/""
+
+  PHI2 "\_______/"""""\_______/"""""\_______/"""""\_______/"""""\___
+
+  MAB     \ 0232        x 0232        / 01D8        / 01D9
+
+  PCNN 0232      \ 0233        x 02D8        \ 01D9        \ 01DA
+                  / 02D8        / 01D8
+
+  PCW  __________/"""""\_______/"""""\_____________________________
+
+  PCN     \ 0232                      \ 01D8                      \ 01DA
+
+  PC      \ 0230                      \ 0232                      \ 01D8
+
+'x' indicates operations which were masked away due to the PC write in
+cycle 422 - so this seems to work.  Now during the inserted NOP
+instruction, the IR is loaded correctly from 01D8,01D9 and during the
+execution of the loaded instruction on cycle 426, PC is correctly set
+to 01D8 with PCNEXT set to 01DA and PCNN ready to increment again as
+during cycle 426-427 we fetch the instruction from 01DA,01DB.
+
+For the interrupt, I think we probably do need to just delay handling
+any interrupt until after the dummy cycle completes.
+
+I think these proceses are not too complex, but I also think they're
+not very elegant.
+
