@@ -1,0 +1,63 @@
+imm4u imm4zu imm5 imm5ez imm5u imm5z imm6ez imm6z imm8 imm8hz imm9e
+
+imm4u              3210
+imm5   5          43210
+imm5u             43210
+imm6z  6         543210
+imm8   7       76543210
+imm5ez 5         54321
+imm6ez 6        654321
+imm9e  9     987654321
+imm8hz         FEDCBA98
+
+
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   add/and rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   or/xor rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sll rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   slt rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sltu rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sra rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   srl rd, rs1, rs2
+  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sub rd, rs1, rs2
+                                                                         
+  i0 y  y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm4zu, rs1, rd   	1024  (4, 3, 3)   slli rd, rs1, imm4zu
+  i0 y  y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm4zu, rs1, rd   	1024  (4, 3, 3)   srai rd, rs1, imm4zu
+  i0 y  y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm4u,  rs1, rd   	1024  (4, 3, 3)   srli rd, rs1, imm4u
+  .  y  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   mret
+  .  y  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   ecall
+  .  y  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   *irq
+                                                                         
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   addi rd, rs1, imm5
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   andi rd, rs1, imm5
+                                                                         
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   ori rd, rs1, imm5
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   xori rd, rs1, imm5
+                                                                         
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5z,  rs1, rd   	2048  (5, 3, 3)   slti rd, rs1, imm5z
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5u,  rs1, rd   	2048  (5, 3, 3)   sltiu rd, rs1, imm5u
+                                                                         
+  i6 i5 i4 i3 i2 i1   z  i7 y    i9 i8 w    x x x x   	imm9e             	 512  (9,)        j imm9e
+  i6 i5 i4 i3 i2 i1   z  i7 y    i9 i8 w    x x x x   	imm9e,  ra        	 512  (9,)        jal ra, imm9e
+  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3, ra   	 256  (5, 3)      jalr ra, imm5ez(rs3)
+  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3       	 256  (5, 3)      jr imm5ez(rs3)
+  i6 i5 i4 i3 i2 i1   i0 i7 y    d  d  d    x x x x   	imm8,   rd        	2048  (8, 3)      addi rd, rd, imm8
+                                                                         
+  iE iD iC iB iA i9   i8 iF y    d  d  d    x x x x   	imm8hz, rd        	2048  (8, 3)      auipc rd, imm8hz
+  iE iD iC iB iA i9   i8 iF y    d  d  d    x x x x   	imm8hz, rd        	2048  (8, 3)      lui rd, imm8hz
+                                                      	                   
+  y  i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   bge rs1, rs3, imm5ez
+  y  i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   bgeu rs1, rs3, imm5ez
+                                                                         
+  y  i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   blt rs1, rs3, imm5ez
+  y  i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   bltu rs1, rs3, imm5ez
+                                                                         
+  i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   beq rs1, rs3, imm6ez
+
+  i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   bne rs1, rs3, imm6ez
+
+  i0 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6z,  rs1, rd   	4096  (6, 3, 3)   lb rd, imm6z(rs1)
+  i0 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6z,  rs1, rd   	4096  (6, 3, 3)   lbu rd, imm6z(rs1)
+  i6 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6ez, rs1, rd   	4096  (6, 3, 3)   lw rd, imm6ez(rs1)
+  i0 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6z,  rs1, rs3  	4096  (6, 3, 3)   sb rs3, imm6z(rs1)
+  i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   sw rs3, imm6ez(rs1)
+
