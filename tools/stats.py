@@ -71,15 +71,31 @@ if __name__ == "__main__":
 		if instr == "none" or instr == "data":
 			continue
 
+		if instr in { "beq", "bne", "blt", "bge", "beq_l", "bne_l" }:
+			if argtypes == "rri" and args[0] == args[1]:
+				instr = instr[:3] + "z" + instr[3:]
+				argtypes = "ri"
+				args = args[1:]
+
 		if "i" not in argtypes and "o" not in argtypes:
 			continue
+
+		imm = args[argtypes.index("i") if "i" in argtypes else argtypes.index("o")]
+
+		hibs = 1
+		for i in range(16):
+			if ((imm >> i) & 1) ^ (imm < 0):
+				hibs = i+2
+
+		if hibs < 4:
+			hibs = 4
+
+		instr = f"{instr}_{hibs}"
 
 		if instr not in frequencies.keys():	
 			frequencies[instr] = 1
 		else:
 			frequencies[instr] += 1
-
-		imm = args[argtypes.index("i") if "i" in argtypes else argtypes.index("o")]
 
 		lobs,hibs = 0,0
 		for i in range(16):

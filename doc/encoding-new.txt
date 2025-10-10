@@ -1,15 +1,39 @@
-imm4u imm4zu imm5 imm5ez imm5u imm5z imm6ez imm6z imm8 imm8hz imm9e
+These encodings follow some of the principles of the RISC-V RV32I
+encodings, such as keeping register specificiers in the same location,
+keeping common immediate bits in the same location across formats,
+etc.
 
-imm4u              3210
-imm5   5          43210
-imm5u             43210
-imm6z  6         543210
-imm8   7       76543210
-imm5ez 5         54321
-imm6ez 6        654321
-imm9e  9     987654321
-imm8hz         FEDCBA98
+RV32I avoids placing s3 in the same bits as d, instead putting
+immediate bits there, but I believe it's better for me to have s3 just
+share with d.
 
+I also did not preserve a common sign bit for immediates, but perhaps
+will revisit that later and see if it would indeed simplify the
+decoding if there was one.
+
+Note that as the internal bus is 8-bit, as far as the decoder is
+concerned the high immediate bits are equivalent to the low ones -
+i.e. i8=i0, i9=i1, etc.  This means that for LUI and AUIPC these bits
+should share positions with the low bits in other instructions as far
+as possible.
+
+The instructions split fairly neatly into 16 groups selected by the
+"x" field, with the groups further divided according to the y,z,w
+fields where necessary.
+
+I upgraded the immediate fields for jr and jalr because there was a
+spare bit easily available, though I don't think these instruction
+benefit much from the extra width.  In fact giving an extra bit to
+each of j and jal would probably be more useful, and jr and jalr could
+maybe be moved to the group above instead, sharing with mret, ecall,
+and *irq.
+
+Having more bits for BEQZ and BNEZ would be valuable, possibly by
+reducing the bits for BEQ and BNE to make way for the new
+instructions.
+
+
+Instruction encodings:
 
   y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   add/and rd, rs1, rs2
   y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   or/xor rd, rs1, rs2
@@ -26,15 +50,6 @@ imm8hz         FEDCBA98
   .  y  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   mret
   .  y  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   ecall
   .  y  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   *irq
-                                                                         
-  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   addi rd, rs1, imm5
-  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   andi rd, rs1, imm5
-                                                                         
-  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   ori rd, rs1, imm5
-  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   xori rd, rs1, imm5
-                                                                         
-  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5z,  rs1, rd   	2048  (5, 3, 3)   slti rd, rs1, imm5z
-  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5u,  rs1, rd   	2048  (5, 3, 3)   sltiu rd, rs1, imm5u
                                                                          
   i6 i5 i4 i3 i2 i1   z  i7 y    i9 i8 w    x x x x   	imm9e             	 512  (9,)        j imm9e
   i6 i5 i4 i3 i2 i1   z  i7 y    i9 i8 w    x x x x   	imm9e,  ra        	 512  (9,)        jal ra, imm9e
@@ -55,9 +70,35 @@ imm8hz         FEDCBA98
 
   i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   bne rs1, rs3, imm6ez
 
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   addi rd, rs1, imm5
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   andi rd, rs1, imm5
+                                                                         
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   ori rd, rs1, imm5
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   xori rd, rs1, imm5
+                                                                         
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5z,  rs1, rd   	2048  (5, 3, 3)   slti rd, rs1, imm5z
+  i0 y  i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5u,  rs1, rd   	2048  (5, 3, 3)   sltiu rd, rs1, imm5u
+                                                                         
   i0 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6z,  rs1, rd   	4096  (6, 3, 3)   lb rd, imm6z(rs1)
   i0 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6z,  rs1, rd   	4096  (6, 3, 3)   lbu rd, imm6z(rs1)
   i6 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6ez, rs1, rd   	4096  (6, 3, 3)   lw rd, imm6ez(rs1)
   i0 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6z,  rs1, rs3  	4096  (6, 3, 3)   sb rs3, imm6z(rs1)
   i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   sw rs3, imm6ez(rs1)
+
+
+All immediate types:
+
+	imm4u imm4zu imm5 imm5ez imm5u imm5z imm6ez imm6z imm8 imm8hz imm9e
+
+Immediate types with distinct encodings:
+
+	imm4u              3210
+	imm5   5          43210
+	imm5u             43210
+	imm6z  6         543210
+	imm8   7       76543210
+	imm5ez 5         54321
+	imm6ez 6        654321
+	imm9e  9     987654321
+	imm8hz         FEDCBA98
 

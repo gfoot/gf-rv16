@@ -175,7 +175,6 @@ class MicrocodeSimulation:
 
 		def cycle(self, mc, argsdict, tracestr):
 
-			#print(mc, argsdict)
 			hilo = 1 if mc.high else 0			
 
 			if "imm" in mc.bus_a:
