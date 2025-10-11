@@ -182,7 +182,7 @@ hardware cycles 422-423 from address 0230, while the next instruction
 is fetched from 0232,0233.  That next instruction executes from cycle
 424 onwards.
 
-  HCYC   /      422      /      423      /      424      /      425
+  HCYC   |      422      |      423      |      424      |      425
 
   PHI1 __/""""""\________/""""""\________/""""""\________/""""""\
 
@@ -205,17 +205,17 @@ Now a two-cycle instruction which modifies PC during the same two
 cycles, followed by a dummy NOP from cycle 424 to propagate the jump
 through to PC itself:
 
-  HCYC   /     422     /     423     /     424     /     425     /
+  HCYC   |     422     |     423     |     424     |     425     |
 
   PHI1 __/"""""\_______/"""""\_______/"""""\_______/"""""\_______/""
 
   PHI2 "\_______/"""""\_______/"""""\_______/"""""\_______/"""""\___
 
-  MAB     \ 0232        \ 02D8        / 01D9        / 01DA
+  MAB     \ 0232        \ 02D8        \ 01D9        \ 01DA
 
   PCNN 0232      \ 0233        \ 02D9        \ 01DA        \ 01DB
                   / 02D8        / 01D9
-
+                      ^^          ^^
   PCW  __________/"""""\_______/"""""\_____________________________
 
   PCN     \ 0232                      \ 01D9                      \ 01DB
@@ -236,13 +236,13 @@ So that's promising.
 
 Updated diagram:
 
-  HCYC   /     422     /     423     /     424     /     425     /
+  HCYC   |     422     |     423     |     424     |     425     |
 
   PHI1 __/"""""\_______/"""""\_______/"""""\_______/"""""\_______/""
 
   PHI2 "\_______/"""""\_______/"""""\_______/"""""\_______/"""""\___
 
-  MAB     \ 0232        x 0232        / 01D8        / 01D9
+  MAB     \ 0232        x 0232        \ 01D8        \ 01D9
 
   PCNN 0232      \ 0233        x 02D8        \ 01D9        \ 01DA
                   / 02D8        / 01D8
@@ -266,3 +266,59 @@ any interrupt until after the dummy cycle completes.
 I think these proceses are not too complex, but I also think they're
 not very elegant.
 
+## Using synchronous counters
+
+The idea to asynchronously load new values into PCNN when cycles write
+to the program counter works in theory but in practice 74HC163
+counters do not have the option to load values asynchronously, so
+ideally we need to align the time when PCNN counts with the time when
+preload data may be available, so that they can be driven by a common
+clock signal.
+
+I don't know at this stage how early in the cycle data will be
+available but would like to not put constraints on it, so I want to
+assume the data is not available until the end of the cycle.  I think
+this can work in the case that the bottom bit is not stored in the
+counter, and the counter only counts once per instruction.  In this
+world the MAR is also only loaded once - right at the start of cycle 0
+- and PCNN can be incremented at the end of cycle 0.  Even for a
+two-cycle instruction this still leaves at least one more cycle before 
+MAB is loaded, so there is no race there.
+
+However in a two-cycle instruction which also writes to PCNN, this is
+going to involve a second write at the end of cycle 1 (as we can only
+write 8 bits at a time through the internal buses) and this could
+create a race with the loading of the MAB and of PCN:
+
+Updated diagram:
+
+          .---------- JALR ---------. .---------- NOP ----------. 
+
+  HCYC   |     422     |     423     |     424     |     425     |
+
+  PHI1 __/"""""\_______/"""""\_______/"""""\_______/"""""\_______/""
+
+  PHI2 "\_______/"""""\_______/"""""\_______/"""""\_______/"""""\___
+
+  MAB     \ 0232                      \ 01D8
+
+  PCNN 0232            \ 02D8        \ 01D8        \ 01DA                
+                           ^^          ^^  
+
+  PCW  __________/"""""\_______/"""""\_____________________________
+
+  PCN     \ 0232                      \ 01D8                      \ 01DA
+
+  PC      \ 0230                      \ 0232                      \ 01D8
+
+This might be OK, if the non-overlapping PHI1/PHI2 create enough delay
+or if MAB and PCN are latches that are active throughout PHI1, not
+just loaded at the very start of it.  It could alse be possible to
+arrange the PHI1/PHI2 generation so that the PCNN load/increment
+happens based on the undelayed input clock, with PHI2 and PHI1 lagging
+further behind it, to create more setup time.  The latch option seems
+the simplest solution though.
+
+Yet another option is to insert a dummy cycle at the end of
+instructions like JALR so that the instruction never ends on a PC
+write cycle.
