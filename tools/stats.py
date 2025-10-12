@@ -125,6 +125,6 @@ if __name__ == "__main__":
 	for instr in sorted(hiranges.keys()):
 		lo,hi,hibs = hiranges[instr]
 		freq = frequencies[instr]
-		print(f"{instr:<6}   {freq:5} {lo:5}  {hi:5}  {hibs:5}")
+		print(f"{instr:<15} {freq:4}  {lo:5}  {hi:5}  {hibs:5}")
 
 
