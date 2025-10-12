@@ -6,7 +6,7 @@ _start:
 
 1:
 	li		a0, 16
-	call	random3
+	call	random
 	call	printbin16
 
 	addi	s0, s0, -1

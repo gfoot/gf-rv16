@@ -1,15 +1,13 @@
 
 # Just a simple LFSR random number generator
 
-random_bits = $2d
-
-random_seed:
+random1_seed:
 	.word $1234
 
-random:
+random1:
 	li		a0, 1
 
-	la		t0, random_seed
+	la		t0, random1_seed
 	lw		a1, (t0)
 2:
 	slli	a0, a0, 1
@@ -38,7 +36,7 @@ random:
 	sltz	a2, a2
 	add		a1, a1, a2
 	
-	la		t0, random_seed
+	la		t0, random1_seed
 	sw		a1, (t0)
 
 	ret
@@ -149,4 +147,60 @@ random3:
 	lw		s1, 4(sp)
 	addi	sp, sp, 8
 	ret
+
+
+# This one scores very well at PractRand testing.  However it requires
+# add-with carry which this architecture doesn't provide, so it costs
+# a bit more to implement here than it does on other architectures.
+
+random4_state:
+	.word 0
+	.word 0
+	.word 0
+	.word 0
+random4:
+	la	t0, random4_state
+
+	li	a0, $0081       # LDA #$0081
+	lw	a1, 6(t0)
+	add	a1, a1, a0      # ADD state+6
+	sw	a1, 6(t0)       # STA state+6
+	sltu	a0, a1, a0	
+	add	a0, a1, a0      # ADC #0
+
+	lw	a1, 4(t0)
+	add	a2, a1, a0      # ADD state+4
+	sw	a2, 4(t0)       # STA state+4  = a2
+	sltu	a0, a2, a0
+	add	a0, a2, a0      # ADC #0
+
+	lw	a1, 2(t0)
+	add	a1, a1, a0      # ADD state+2
+	sw	a1, 2(t0)       # STA state+2  = a1
+	sltu	a0, a1, a0
+	add	a0, a1, a0      # ADC #0
+
+	# We want to load state+3 but it's misaligned.  But its low
+	# byte is in the high byte of a1 and its high byte is in the
+	# low byte of a2.
+	slli	a2, a2, 8
+	srli	a1, a1, 8
+	or	a1, a1, a2
+	add	a1, a1, a0      # ADD state+3
+	sltu	a0, a1, a0
+	add	a0, a1, a0      # ADC #0
+
+	lw	a1, 0(t0)
+	add	a1, a1, a0      # ADD state+0
+	sw	a1, 0(t0)       # STA state+0
+	sltu	a0, a1, a0
+	add	a0, a1, a0      # ADC #0
+
+	lw	a1, 2(t0)
+	add	a0, a1, a0      # ADD state+2
+	sw	a0, 2(t0)       # STA state+2
+
+	ret
+
+random = random4
 
