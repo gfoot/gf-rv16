@@ -183,7 +183,8 @@ SLTU  rd, rs1, rs2     .	0		low	0xff	regs	rs2	xor	mar_w
                        .	1		low	mar	regs	rs1	ad1						
                        .	2		high	0xff	regs	rs2	xor	mar_w					
                        .	3		high	mar	regs	rs1	adc		rd	zero			
-                       .	4	1	low	0x00	zero		adc		rd	alu			
+                       .	4		low	0x00	zero		adc		rd	alu			
+                       .	5	1	low	0x01	regs	rd	xor		rd	alu			
                        .													
 SRL   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
                        .	1		high	0x00	regs	rs1	xor	mar_w					
