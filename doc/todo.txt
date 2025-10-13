@@ -1,12 +1,12 @@
 Some things to do at some point
 
 ISA design
- * Make stats.py group pairs of instructions together where they are working around limited immediate widths
  * Redo the ISA encoding and pin down immediate widths
  * Encode immediate widths in the microcode
  * Make the microcode simulator check parameters are reasonable
  * Make the assembler output binary, and make the simulator read it
  * Write a thorough instruction set test suite
+ * Make sure SLTI works properly, it might require its immediate to be inverted by the encoder
 
 System software
  * Make the code use MMIO instead of ecalls for I/O
