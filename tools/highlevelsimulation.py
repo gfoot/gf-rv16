@@ -65,7 +65,7 @@ class HighLevelSimulation:
 
 	class State:
 
-		def __init__(self, env):
+		def __init__(self, env, cycletrace):
 			self.env = env
 
 			self.regs = [0] * 9

@@ -9,6 +9,7 @@ from microcodesimulation import MicrocodeSimulation
 LOGLEVEL_ERROR = 0
 LOGLEVEL_INFO = 1
 LOGLEVEL_TRACE = 2
+cycletrace = False
 
 class Log:
 
@@ -39,8 +40,8 @@ class Sim:
 
 	class DebugInfo:
 		def __init__(self, debuginfo):
-			self.symboldict = debuginfo
-			self.sortedbyvalue = sorted([(v,k) for k,v in debuginfo.items() if '.' not in k], reverse=True)
+			self.symboldict = debuginfo if debuginfo else dict()
+			self.sortedbyvalue = sorted([(v,k) for k,v in self.symboldict.items() if '.' not in k], reverse=True)
 
 		def sym_from_addr(self, addr):
 			for v,k in self.sortedbyvalue:
@@ -49,14 +50,16 @@ class Sim:
 			return None
 
 
-	def __init__(self, simulation, memory, entry, log, debuginfo):
+	def __init__(self, simulation, memory, entry, log=None, debuginfo=None):
 		self.state = simulation.State(self, cycletrace)
 		self.state.setpc(entry)
 
 		self.instructiondispatcher = simulation.InstructionDispatcher()
 
 		self.memory = memory
-		self.log = log
+
+		self.log = log if log else Log()
+
 		self.debuginfo = Sim.DebugInfo(debuginfo)
 
 		self.stop = False
@@ -301,7 +304,6 @@ if __name__ == "__main__":
 	filename = None
 	trace = False
 	highlevel = False
-	cycletrace = False
 
 	for arg in sys.argv[1:]:
 		if arg == "--debug":

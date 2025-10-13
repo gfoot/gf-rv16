@@ -429,13 +429,15 @@ class Assembler:
 		self.error(f"Bad line: [{line}]")
 		
 
-	def assemblefile(self, filename):
+	def assemblefile(self, filename, lines=None):
 		oldfilename,oldlinenumber = self.filename,self.linenumber
 
 		self.filename = filename
-		with open(filename, "r") as fp:
-			lines = fp.readlines()
-			fp.close()
+
+		if lines is None:
+			with open(filename, "r") as fp:
+				lines = fp.readlines()
+				fp.close()
 
 		for self.linenumber,line in enumerate(lines):
 			try:
@@ -446,7 +448,7 @@ class Assembler:
 		self.filename,self.linenumber = oldfilename,oldlinenumber
 
 
-	def assemble(self, filename, listingfile=None):
+	def assemble(self, filename, listingfile=None, lines=None):
 		self.listingfile = listingfile
 
 		# Labels persist between passes
@@ -479,7 +481,7 @@ class Assembler:
 
 			self.setlabel("_bottom", self.pos)
 
-			self.assemblefile(filename)
+			self.assemblefile(filename, lines)
 
 			self.setlabel("_top", self.pos, True)
 
