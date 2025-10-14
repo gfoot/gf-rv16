@@ -333,3 +333,16 @@ if __name__ == "__main__":
 		for i,(v,k) in enumerate(sorted([(v,k) for k,v in frequencies[group].items()])):
 			print(f"{i:3} {v:3} {k}")
 
+	print(f"\n\nMicrocode length: {len(microcode)}")
+	
+	addrs = sorted([(v,k) for k,v in instrs.items()])
+	sizes = [[],[],[],[],[],[],[],[],[]]
+	for i,((v,x,x),k) in enumerate(addrs):
+		nv = addrs[i+1][0][0] if i+1<len(addrs) else len(microcode)
+		size = nv - v
+		sizes[size].append(k)
+
+	for i,instrs in enumerate(sizes):
+		if instrs:
+		    print(f"size {i}: {len(instrs):3} instrs")
+
