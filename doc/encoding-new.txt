@@ -53,8 +53,8 @@ Instruction encodings:
                                                                          
   i6 i5 i4 i3 i2 i1   z  i7 y    i9 i8 w    x x x x   	imm9e             	 512  (9,)        j imm9e
   i6 i5 i4 i3 i2 i1   z  i7 y    i9 i8 w    x x x x   	imm9e,  ra        	 512  (9,)        jal ra, imm9e
-  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3, ra   	 256  (5, 3)      jalr ra, imm5ez(rs3)
-  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3       	 256  (5, 3)      jr imm5ez(rs3)
+  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3, ra   	 256  (5, 3)      jalr ra, rs3, imm5ez
+  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3       	 256  (5, 3)      jr rs3, imm5ez
   i6 i5 i4 i3 i2 i1   i0 i7 y    d  d  d    x x x x   	imm8,   rd        	2048  (8, 3)      addi rd, rd, imm8
                                                                          
   iE iD iC iB iA i9   i8 iF y    d  d  d    x x x x   	imm8hz, rd        	2048  (8, 3)      auipc rd, imm8hz
@@ -123,55 +123,55 @@ zero for unsigned types.  Let's explore how things would be if instead
 the sign bit was always in position F:
 
 
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   add/and rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   or/xor rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sll rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   slt rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sltu rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sra rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   srl rd, rs1, rs2
-  y  y  y  s2 s2 s2   s1 s1 s1   d  d  d    x x x x   	rs2, rs1, rd      	 512  (3, 3, 3)   sub rd, rs1, rs2
-                                                                         
-  y  i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm4zu, rs1, rd   	1024  (4, 3, 3)   slli rd, rs1, imm4zu
-  y  i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm4zu, rs1, rd   	1024  (4, 3, 3)   srai rd, rs1, imm4zu
-  y  i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm4u,  rs1, rd   	1024  (4, 3, 3)   srli rd, rs1, imm4u
-  y  .  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   mret
-  y  .  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   ecall
-  y  .  y  .  .  .    .  .  .    .  .  .    x x x x   	                  	   1  (0, 0, 0)   *irq
-                                                                         
-  i9 i5 i4 i3 i2 i1   z  i6 y    i7 i8 w    x x x x   	imm9e             	 512  (9,)        j imm9e
-  i9 i5 i4 i3 i2 i1   z  i6 y    i7 i8 w    x x x x   	imm9e,  ra        	 512  (9,)        jal ra, imm9e
-  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3, ra   	 256  (5, 3)      jalr ra, imm5ez(rs3)
-  i6 i5 i4 i3 i2 i1   z  w  y    s3 s3 s3   x x x x   	imm5ez, rs3       	 256  (5, 3)      jr imm5ez(rs3)
-  i7 i5 i4 i3 i2 i1   i0 i6 y    d  d  d    x x x x   	imm8,   rd        	2048  (8, 3)      addi rd, rd, imm8
-                                                                         
-  iF iD iC iB iA i9   i8 iE y    d  d  d    x x x x   	imm8hz, rd        	2048  (8, 3)      auipc rd, imm8hz
-  iF iD iC iB iA i9   i8 iE y    d  d  d    x x x x   	imm8hz, rd        	2048  (8, 3)      lui rd, imm8hz
-                                                      	                   
-  i5 y  i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   bge rs1, rs3, imm5ez
-  i5 y  i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   bgeu rs1, rs3, imm5ez
-                                                                         
-  i5 y  i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   blt rs1, rs3, imm5ez
-  i5 y  i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm5ez, rs1, rs3  	2048  (5, 3, 3)   bltu rs1, rs3, imm5ez
-                                                                         
-  i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   beq rs1, rs3, imm6ez
-
-  i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   bne rs1, rs3, imm6ez
-
-  i4 i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   addi rd, rs1, imm5
-  i4 i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   andi rd, rs1, imm5
-                                                                         
-  i4 i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   ori rd, rs1, imm5
-  i4 i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5,   rs1, rd   	2048  (5, 3, 3)   xori rd, rs1, imm5
-                                                                         
-  i4 i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5z,  rs1, rd   	2048  (5, 3, 3)   slti rd, rs1, imm5z
-  i4 i0 y  i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm5u,  rs1, rd   	2048  (5, 3, 3)   sltiu rd, rs1, imm5u
-                                                                         
-  i5 i0 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6z,  rs1, rd   	4096  (6, 3, 3)   lb rd, imm6z(rs1)
-  i5 i0 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6z,  rs1, rd   	4096  (6, 3, 3)   lbu rd, imm6z(rs1)
-  i6 i5 i4 i3 i2 i1   s1 s1 s1   d  d  d    x x x x   	imm6ez, rs1, rd   	4096  (6, 3, 3)   lw rd, imm6ez(rs1)
-  i5 i0 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6z,  rs1, rs3  	4096  (6, 3, 3)   sb rs3, imm6z(rs1)
-  i6 i5 i4 i3 i2 i1   s1 s1 s1   s3 s3 s3   x x x x   	imm6ez, rs1, rs3  	4096  (6, 3, 3)   sw rs3, imm6ez(rs1)
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	add/and	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	or/xor	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	sll	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	slt	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	sltu	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	sra	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	srl	rd, rs1, rs2
+  y  y  y   s2 s2 s2  s1 s1 s1  d  d  d   x x x x  	 512 (3,3,3) 	sub	rd, rs1, rs2
+                                                   
+  y  i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	1024 (4,3,3) 	slli	rd, rs1, imm4zu
+  y  i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	1024 (4,3,3) 	srai	rd, rs1, imm4zu
+  y  i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	1024 (4,3,3) 	srli	rd, rs1, imm4u
+  y  .  y   .  .  .   .  .  .   .  .  .   x x x x  	   1           	mret
+  y  .  y   .  .  .   .  .  .   .  .  .   x x x x  	   1           	ecall
+  y  .  y   .  .  .   .  .  .   .  .  .   x x x x  	   1           	*irq
+                                                   
+  i9 i5 i4  i3 i2 i1  z  i6 y   i7 i8 w   x x x x  	 512 (9,)      	j	imm9e
+  i9 i5 i4  i3 i2 i1  z  i6 y   i7 i8 w   x x x x  	 512 (9,)      	jal	ra, imm9e
+  i6 i5 i4  i3 i2 i1  z  w  y   s3 s3 s3  x x x x  	 256 (5,3)    	jalr	ra, rs3, imm5ez
+  i6 i5 i4  i3 i2 i1  z  w  y   s3 s3 s3  x x x x  	 256 (5,3)    	jr	rs3, imm5ez
+  i7 i5 i4  i3 i2 i1  i0 i6 y   d  d  d   x x x x  	2048 (8,3)    	addi	rd, rd, imm8
+                                                   
+  iF iD iC  iB iA i9  i8 iE y   d  d  d   x x x x  	2048 (8,3)    	auipc	rd, imm8hz
+  iF iD iC  iB iA i9  i8 iE y   d  d  d   x x x x  	2048 (8,3)    	lui	rd, imm8hz
+                                                    
+  i5 y  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	2048 (5,3,3) 	bge	rs1, rs3, imm5ez
+  i5 y  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	2048 (5,3,3) 	bgeu	rs1, rs3, imm5ez
+                                                   
+  i5 y  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	2048 (5,3,3) 	blt	rs1, rs3, imm5ez
+  i5 y  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	2048 (5,3,3) 	bltu	rs1, rs3, imm5ez
+                                                   
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	4096 (6,3,3) 	beq	rs1, rs3, imm6ez
+           
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	4096 (6,3,3) 	bne	rs1, rs3, imm6ez
+           
+  i4 i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	2048 (5,3,3) 	addi	rd, rs1, imm5
+  i4 i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	2048 (5,3,3) 	andi	rd, rs1, imm5
+                                                   
+  i4 i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	2048 (5,3,3) 	ori	rd, rs1, imm5
+  i4 i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	2048 (5,3,3) 	xori	rd, rs1, imm5
+                                                   
+  i4 i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	2048 (5,3,3) 	slti	rd, rs1, imm5z
+  i4 i0 y   i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	2048 (5,3,3) 	sltiu	rd, rs1, imm5u
+                                                   
+  i5 i0 i4  i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	4096 (6,3,3) 	lb	rd, imm6z(rs1)
+  i5 i0 i4  i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	4096 (6,3,3) 	lbu	rd, imm6z(rs1)
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  d  d  d   x x x x  	4096 (6,3,3) 	lw	rd, imm6ez(rs1)
+  i5 i0 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	4096 (6,3,3) 	sb	rs3, imm6z(rs1)
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  x x x x  	4096 (6,3,3) 	sw	rs3, imm6ez(rs1)
 
 
                  F E D C B A 9 8 7 6 5 4 3 2 1 0
@@ -215,9 +215,8 @@ immediate data:
 	_ _ _ _ _ _ _ _    imm4u_H imm4zu_H imm5u_H imm8hz_L
 
 It's a pretty comfortable number of different cases, encodable in four
-bits from the instruction decoder, and it's possible that a single
-ATF22V10 could output the bytes - there are 10 input bits from the
-instruction, four to select an encoding, and eight output bits, for a
-total of 22 bits.
+bits from the instruction decoder, and it fits in a single ATF22V10, with
+the four-bit selector choosing the encoding, eight output bits, and 10 
+input bits from the encoded instruction, for a total of 22 bits.
 
 
