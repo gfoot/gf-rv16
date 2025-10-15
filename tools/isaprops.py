@@ -6,6 +6,8 @@ class IsaProps:
 		self.auipcshift = 8
 		self.orimin = -16
 		self.orimax = 16
+		self.limin = -32
+		self.limax = 31
 		self.jalmin = -512
 		self.jalmax = 510
 		self.jmin = -512
@@ -32,7 +34,7 @@ class IsaProps:
 			("lui", "imm8h8z"), # broken
 			("auipc", "imm8h8z"),
 			("j jal", "imm9ez"),
-			("lw lb lbu sb sw", "imm6z"),
+			("lw lb lbu sb sw li", "imm6z"),
 			("addi8", "imm8"),
 			("addi andi ori xori", "imm5"),
 			("slti", "imm5z"),

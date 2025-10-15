@@ -7,8 +7,8 @@ encodings = """
   i7 i5 i4  i3 i2 i1  i0 i6 0   d  d  d   0 0 0 1  	2048 (8,3)    	addi8	rd, imm8
   i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 0   0 0 0 1  	 512 (9,)      	j	imm9ez
   i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 1   0 0 0 1  	 512 (9,)      	jal	ra, imm9ez
-  i6 i5 i4  i3 i2 i1  1  0  1   s3 s3 s3  0 0 0 1  	 512 (6,3)    	jr	rs3, imm6ez
-  i6 i5 i4  i3 i2 i1  1  1  1   s3 s3 s3  0 0 0 1  	 512 (6,3)    	jalr	ra, rs3, imm6ez
+  i5 i0 i4  i3 i2 i1  1  0  1   d  d  d   0 0 0 1  	 512 (6,3)    	li	rd, imm6z
+  i6 i5 i4  i3 i2 i1  1  1  1   s3 s3 s3  0 0 0 1  	 512 (6,3)    	.	ra, rs3, imm6ez
                                                    
   i6 i5 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 0 1 0  	4096 (6,3,3) 	lw	rd, rs1, imm6ez
   i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  0 0 1 1  	4096 (6,3,3) 	sw	rs3, rs1, imm6ez
@@ -39,12 +39,12 @@ encodings = """
   i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  !	1792 (5,3,3) 	bge	rs1, rs3, imm5ez
   i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =	 256 (5,3) 	bgez	rs1, rs3, imm5ez
   i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  !	1792 (5,3,3) 	bgeu	rs1, rs3, imm5ez
-  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =	 256 (5,3) 	.	rs1, rs3, imm5ez
+  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =	 256 (5,3) 	jr	rs1, rs3, imm5ez
                                                    
   i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  !	1792 (5,3,3) 	blt	rs1, rs3, imm5ez
   i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =	 256 (5,3) 	bltz	rs1, rs3, imm5ez
   i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  !	1792 (5,3,3) 	bltu	rs1, rs3, imm5ez
-  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =	 256 (5,3) 	.	rs1, rs3, imm5ez
+  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =	 256 (5,3) 	jalr	rs1, rs3, imm5ez
                                                    
   i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 0  	2048 (5,3,3) 	addi	rd, rs1, imm5
   i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 0  	2048 (5,3,3) 	andi	rd, rs1, imm5
@@ -63,9 +63,6 @@ encodings = """
   1  0  1   .  .  .   .  .  .   .  1  0   1 1 1 1  	   1           	ebreak
   1  0  1   .  .  .   .  .  .   .  .  1   1 1 1 1  	   1           	mret
 
-
-  i4 i0 0   i3 i2 i1  0  1  0   d  d  d   1 1 0 1  	 256 (5,3) 	li	rd, imm5
-  
 """
 # 1  1  1   .  .  .   .  .  .   .  .  .   1 1 1 1  	   1           	*irq
 
@@ -249,8 +246,23 @@ class Instr:
 				self.opcode |= 1<<i
 
 	def encode(self, argtypes, args):
-		assert len(argtypes) == len(self.args), f"{self.name} expected {len(self.args)} args but got {len(argtypes)} argtypes"
+
+		orig_argtypes = argtypes
+		orig_unsigned_args = tuple([arg & 0xffff for arg in args])
+		args = tuple(args)
+
+		if self.constraint == "=":
+			assert len(args) == len(self.args) - 1, f"{self.name} expected {len(self.args)-1} args but got {len(args)} args"
+			assert len(argtypes) == len(self.args) - 1 and argtypes[self.constraintarg1idx] == "r", f"{self.name} expected {len(self.args)-1} args but got {len(argtypes)} argtypes"
+			# Special case for encodings where two register fields are required to be equal - if the assembler emits
+			# the instruction with only one of the registers specified, insert the other register before encoding,
+			# rather than throwing an error
+			regarg = args[self.constraintarg1idx]
+			argtypes = argtypes[:self.constraintarg2idx] + "r" + argtypes[self.constraintarg2idx:]
+			args = args[:self.constraintarg2idx] + (regarg,) + args[self.constraintarg2idx:]
+
 		assert len(args) == len(self.args), f"{self.name} expected {len(self.args)} args but got {len(args)} args"
+		assert len(argtypes) == len(self.args), f"{self.name} expected {len(self.args)} args but got {len(argtypes)} argtypes"
 		
 		result = self.opcode
 
@@ -278,8 +290,7 @@ class Instr:
 		decoded = self.decode(result)
 		assert decoded, f"'{self.name}' ({args}): decoding '{result:04X}' failed"
 		decodedname,decodedargtypes,decodedargs = decoded
-		unsignedargs = tuple([arg & 0xffff for arg in args])
-		assert (decodedname,decodedargtypes,decodedargs) == (self.name, argtypes, unsignedargs), f"'{self.name}' ({args}): decode mismatch: {decoded} vs {(self.name,argtypes,unsignedargs)}"
+		assert (decodedname,decodedargtypes,decodedargs) == (self.name, orig_argtypes, orig_unsigned_args), f"'{self.name}' ({args}): decode mismatch: {decoded} vs {(self.name,argtypes,unsignedargs)}"
 
 		return result
 
@@ -302,7 +313,14 @@ class Instr:
 		    if self.constraint == ">" and not prevregnum > lastregnum:
 			    return False
 
-		return self.name, self.argtypes, args
+		argtypes = self.argtypes
+
+		if self.constraint == "=":
+			# Remove the extra copy of the constrained register from the argument list
+			argtypes = argtypes[:self.constraintarg2idx] + argtypes[self.constraintarg2idx+1:]
+			args = args[:self.constraintarg2idx] + args[self.constraintarg2idx+1:]
+
+		return self.name, argtypes, args
 
 
 	def __str__(self):
@@ -365,7 +383,13 @@ class Encoding:
 			argtypes = "rri"
 			args = [args[0], args[2], args[1]]
 
-		return self.instrs[instr].encode(argtypes, args)
+		encodedvalue = self.instrs[instr].encode(argtypes, args)
+		
+		decoding = self.decode(encodedvalue)
+		unsignedargs = tuple([arg & 0xffff for arg in args])
+		assert decoding == (instr, argtypes, unsignedargs), f"Encode-decode mismatch: {repr((instr, argtypes, unsignedargs))} => {encodedvalue:04X} => {repr(decoding)}"
+
+		return encodedvalue
 		
 
 	def decode(self, encodedvalue):
@@ -410,13 +434,16 @@ if __name__ == "__main__":
 	encoding.test()
 
 	for expected, instr, argtypes, args in [
-		( 0xf150, "lui", "ri", (5, 0xf800) ),
+		( 0xf150, "lui", "ri",  (5, 0xf800) ),
 		( 0x0d17, "add", "rrr", (1, 2, 3) ),
 		( None  , "add", "rrr", (1, 3, 2) ),
 		( None  , "and", "rrr", (1, 2, 3) ),
 		( 0x0997, "and", "rrr", (1, 3, 2) ),
-		( 0x595d, "li",  "ri", (5, 13) ),
+		( 0x5ad1, "li",  "ri",  (5, 13) ),
+		( 0x595d, "ori", "rri", (5, 2, 13) ),
 		( 0x59dd, "ori", "rri", (5, 3, 13) ),
+		( None  , "bnez","rri", (5, 5, 12) ),
+		( 0x1ad9, "bnez","ri",  (5, 12) ),
 	]:
 		expectedstr = f"{expected:04X}" if expected is not None else "----"
 		print(f"{expectedstr} {repr((instr,argtypes,args))}  =>  ", end="")
@@ -435,5 +462,8 @@ if __name__ == "__main__":
 		else:
 			print(f"exception")
 
+	# RISC-V specifies that all-bits-clear and all-bits-set are not valid instruction encodings
 	for value in [ 0, 0xffff ]:
-		print(f"{value:04X} => {encoding.decode(value)}")
+		instr, argtypes, args = encoding.decode(value)
+		assert instr == "unimp", f"Expected encoding {value:04X} to decode to 'unimp' but got '{instr}' instead"
+

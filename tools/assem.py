@@ -681,20 +681,13 @@ class Assembler:
 			assert argtypes == "ri"
 			reg, value = value_args
 
-			if value & 0xffff == 0:
-				self.filtered_emit("srli", "rri", [reg, reg, 16], comment, True)
+			if value < self.isaprops.limin or value > self.isaprops.limax:
+				lo,hi = self.calc_lo_hi(value, self.isaprops.luishift)
+
+				self.filtered_emit("lui", "ri", [reg, hi], comment, True)
+				if lo:
+					self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
 				return
-
-			if value >= self.isaprops.orimin and value <= self.isaprops.orimax:
-				self.filtered_emit("ori", "rri", [reg, self.isaprops.regnum("sp"), value], comment, True)
-				return
-
-			lo,hi = self.calc_lo_hi(value, self.isaprops.luishift)
-
-			self.filtered_emit("lui", "ri", [reg, hi], comment, True)
-			if lo:
-				self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
-			return
 
 		if instr == "la":
 			assert argtypes == "ri"
@@ -783,15 +776,17 @@ class Assembler:
 
 		if instr == "jalr":
 			if argtypes == "r":
-				self.filtered_emit("jalr", "rri", [self.isaprops.regnum("ra"), value_args[0], 0], comment, True)
+				self.filtered_emit("jalr", "ri", [value_args[0], 0], comment, True)
 				return
-			elif argtypes == "ri":
-				self.filtered_emit("jalr", "rri", [self.isaprops.regnum("ra"), value_args[0], value_args[1]], comment, True)
+			elif argtypes == "rri":
+				if value_args[0] != self.isaprops.regnum("ra"):
+					self.error(f"jalr only supports ra is the link register")
+				self.filtered_emit("jalr", "ri", value_args[1:], comment, True)
 				return
 			elif argtypes == "rr":
 				self.filtered_emit("jalr", "rri", value_args + [0], comment, True)
 				return
-			elif argtypes == "rri" and value_args[1] == 0:
+			elif argtypes == "ri" and value_args[0] == 0:
 				self.error(f"jr/jalr operations with register zero as base are not supported")
 
 		if instr == "jr" and argtypes == "ri" and value_args[0] == 0:
@@ -805,30 +800,6 @@ class Assembler:
 			assert argtypes == ""
 			self.filtered_emit("jr", "ri", [self.isaprops.regnum("ra"), 0], comment, True)
 			return
-
-#		if instr == "beqz":
-#			assert argtypes == "ri"
-#			reg, value = value_args
-#			self.filtered_emit("beq", "rri", [reg, 0, value], comment, True)
-#			return
-#
-#		if instr == "bnez":
-#			assert argtypes == "ri"
-#			reg, value = value_args
-#			self.filtered_emit("bne", "rri", [reg, 0, value], comment, True)
-#			return
-#
-#		if instr == "bgez":
-#			assert argtypes == "ri"
-#			reg, value = value_args
-#			self.filtered_emit("bge", "rri", [reg, 0, value], comment, True)
-#			return
-#
-#		if instr == "bltz":
-#			assert argtypes == "ri"
-#			reg, value = value_args
-#			self.filtered_emit("blt", "rri", [reg, 0, value], comment, True)
-#			return
 
 		if instr == "blez":
 			assert argtypes == "ri"
@@ -849,12 +820,6 @@ class Assembler:
 			rs1, rs2, value = value_args
 			if rs2 == 0:
 				self.filtered_emit(instr+"z", "rri", [rs1, rs1, value], comment, True)
-				return
-
-		if instr == "beqz" or instr == "bnez" or instr == "bgez" or instr == "bltz":
-			if argtypes == "ri":
-				reg, value = value_args
-				self.filtered_emit(instr, "rri", [reg, reg, value], comment, True)
 				return
 
 		if instr in branchswaps.keys():

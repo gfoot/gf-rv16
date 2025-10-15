@@ -227,7 +227,10 @@ class MicrocodeSimulation:
 				self.mar = [self.mar[1], bus_c]
 
 			if mc.reg_w:
-				regnum = argsdict[mc.reg_w]
+				if mc.reg_w == "ra":
+					regnum = 1
+				else:
+					regnum = argsdict[mc.reg_w]
 				assert regnum >= 1 and regnum <= 8
 
 				if mc.reg_win == "alu":

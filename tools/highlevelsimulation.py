@@ -37,7 +37,7 @@ class HighLevelSimulation:
 
 		def j_i     (st,          imm):                                                     st.setpc(st.getpc() + imm - 2)
 		def jal_ri  (st, rd,      imm):                     st.setreg(rd, st.getpc() + 2) ; st.setpc(st.getpc() + imm - 2)
-		def jalr_rri(st, rd, rs1, imm): dest=st.sreg(rs1) ; st.setreg(rd, st.getpc() + 2) ; st.setpc(dest       + imm - 2)
+		def jalr_ri (st,     rs1, imm): dest=st.sreg(rs1) ; st.setreg(1,  st.getpc() + 2) ; st.setpc(dest       + imm - 2)
 		def jr_ri   (st,     rs1, imm): dest=st.sreg(rs1) ;                                 st.setpc(dest       + imm - 2)
 
 		def lb_rri (st,  rd, rs1, imm): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
@@ -48,12 +48,11 @@ class HighLevelSimulation:
 
 		def ecall_(st): st.ecall()
 
-		# Special cases for certain argument values
 		def li_ri(st, rd, imm): st.setreg(rd, imm)
-		def beqz_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == 0)
-		def bnez_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != 0)
-		def bltz_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  0)
-		def bgez_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= 0)
+		def beqz_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == 0)
+		def bnez_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != 0)
+		def bltz_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  0)
+		def bgez_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= 0)
 
 
 		def dispatch(self, st, instr, argtypes, args):

@@ -1,3 +1,8 @@
+NOTE: The encodings shown here are now out-of-date, the current encoding 
+is embedded in tools/encode.py in a similar text-based format to that
+used here.  I've kept this file anyway for now as documentation/rationale.
+
+
 These encodings follow some of the principles of the RISC-V RV32I
 encodings, such as keeping register specificiers in the same location,
 keeping common immediate bits in the same location across formats,
