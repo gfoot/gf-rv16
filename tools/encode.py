@@ -62,6 +62,10 @@ encodings = """
   1  0  1   .  .  .   .  .  .   .  0  0   1 1 1 1  	   1           	ecall
   1  0  1   .  .  .   .  .  .   .  1  0   1 1 1 1  	   1           	ebreak
   1  0  1   .  .  .   .  .  .   .  .  1   1 1 1 1  	   1           	mret
+
+
+  i4 i0 0   i3 i2 i1  0  1  0   d  d  d   1 1 0 1  	 256 (5,3) 	li	rd, imm5
+  
 """
 # 1  1  1   .  .  .   .  .  .   .  .  .   1 1 1 1  	   1           	*irq
 
@@ -365,6 +369,9 @@ class Encoding:
 		
 
 	def decode(self, encodedvalue):
+		if encodedvalue == 0 or encodedvalue == 0xffff:
+			return ("unimp", "", [])
+
 		matches = []
 		for instr in self.instrs.values():
 			decoding = instr.decode(encodedvalue)
@@ -408,6 +415,8 @@ if __name__ == "__main__":
 		( None  , "add", "rrr", (1, 3, 2) ),
 		( None  , "and", "rrr", (1, 2, 3) ),
 		( 0x0997, "and", "rrr", (1, 3, 2) ),
+		( 0x595d, "li",  "ri", (5, 13) ),
+		( 0x59dd, "ori", "rri", (5, 3, 13) ),
 	]:
 		expectedstr = f"{expected:04X}" if expected is not None else "----"
 		print(f"{expectedstr} {repr((instr,argtypes,args))}  =>  ", end="")
@@ -425,3 +434,6 @@ if __name__ == "__main__":
 			assert decoding == (instr, argtypes, args)
 		else:
 			print(f"exception")
+
+	for value in [ 0, 0xffff ]:
+		print(f"{value:04X} => {encoding.decode(value)}")

@@ -78,25 +78,25 @@ BGEU  rs1, rs2, immj   .	0		low	0xff	regs	rs2	xor	mar_w
                        .	5		low	immj	pc		ad0				pc_w		
                        .	6	1	high	immj	pc		adc				pc_w		
                        .													
-LB    rd, imm(rs1)     .	0		low	imm	regs	rs1	ad0	mar_w					
+LB    rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
                        .	1		high	imm	regs	rs1	adc	mar_w					
                        .	2		low	0x00	mem		xor	mar_w	rd	alu			
                        .	3	1	high	marsx	zero		ad0		rd	alu			
                        .													
-LBU   rd, imm(rs1)     .	0		low	imm	regs	rs1	ad0	mar_w					
+LBU   rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
                        .	1		high	imm	regs	rs1	adc	mar_w	rd	zero			
                        .	2	1	low	0x00	mem		or		rd	alu			
                        .													
-LW    rd, imm(rs1)     .	0		low	imm	regs	rs1	ad0	mar_w					
+LW    rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
                        .	1		high	imm	regs	rs1	adc	mar_w					
                        .	2		low	0x00	mem		or		rd	alu			
                        .	3	1	high	0x00	mem		or		rd	alu			
                        .													
-SB    rs2, imm(rs1)    .	0		low	imm	regs	rs1	ad0	mar_w					
+SB    rs2, rs1, imm    .	0		low	imm	regs	rs1	ad0	mar_w					
                        .	1		high	imm	regs	rs1	adc	mar_w					
                        .	2	1	low	0x00	regs	rs2	or					mem_w	
                        .													
-SW    rs2, imm(rs1)    .	0		low	imm	regs	rs1	ad0	mar_w					
+SW    rs2, rs1, imm    .	0		low	imm	regs	rs1	ad0	mar_w					
                        .	1		high	imm	regs	rs1	adc	mar_w					
                        .	2		low	0x00	regs	rs2	or					mem_w	
                        .	3	1	high	0x00	regs	rs2	or					mem_w	

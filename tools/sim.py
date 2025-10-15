@@ -4,6 +4,7 @@ import sys
 
 from highlevelsimulation import HighLevelSimulation
 from microcodesimulation import MicrocodeSimulation
+from encode import Encoding
 
 
 LOGLEVEL_ERROR = 0
@@ -47,7 +48,7 @@ class Sim:
 			for v,k in self.sortedbyvalue:
 				if v <= addr:
 					return k, addr-v
-			return None
+			return None,None
 
 
 	def __init__(self, simulation, memory, entry, log=None, debuginfo=None):
@@ -57,6 +58,7 @@ class Sim:
 		self.instructiondispatcher = simulation.InstructionDispatcher()
 
 		self.memory = memory
+		self.encoding = Encoding()
 
 		self.log = log if log else Log()
 
@@ -76,63 +78,41 @@ class Sim:
 		self.exception(2, self.pc, f"Illegal instruction (unimp)")
 
 	def memreadw(self, addr, noexcept=False):
+		addr &= 0xffff
 
 		if addr & 1:
 			if not noexcept:
 				self.exception(4, addr, f"Unaligned address during word read")
 			return None
 
-		typ,types,value = self.memory[addr // 2]
-
-		if typ != "data":
-			if not noexcept:
-				self.exception(5, addr, f"Read from non-data memory ({typ} {value})")
-			return None
-
-		return value
+		return 0xffff & self.memory[addr // 2]
 
 	def memreadb(self, addr):
-
-		typ,types,value = self.memory[addr // 2]
-
-		if typ != "data":
-			self.exception(5, addr, f"Read from non-data memory ({typ} {value})")
-
+		addr &= 0xffff
+		value = self.memory[addr // 2]
 		return 0xff & (value >> (8*(addr & 1)))
 
-
 	def memwritew(self, addr, value):
-
-		typ,types,oldvalue = self.memory[addr // 2]
-
-		if typ == "none":
-			typ,oldvalue = "data",0
-
-		if typ != "data":
-			self.exception(5, addr, f"Write to non-data memory ({typ} {types} {oldvalue})")
+		addr &= 0xffff
+		value &= 0xffff
 
 		if addr & 1:
 			self.exception(4, addr, f"Unaligned address during word write")
 
-		self.memory[addr // 2] = ("data", None, value & 0xffff)
+		self.memory[addr // 2] = value
 
 	def memwriteb(self, addr, value):
+		addr &= 0xffff
 		value &= 0xff
 
-		typ,types,oldvalue = self.memory[addr // 2]
-
-		if typ == "none":
-			typ,oldvalue = "data",0
-
-		if typ != "data":
-			self.exception(5, addr, f"Write to non-data memory ({typ} {types} {oldvalue})")
+		oldvalue = self.memory[addr // 2]
 
 		if addr & 1:
 			value = value << 8 | oldvalue & 0xff
 		else:
 			value = value | oldvalue & 0xff00
 
-		self.memory[addr // 2] = ("data", None, value & 0xffff)
+		self.memory[addr // 2] = value
 
 	def cycletrace(self, text):
 		if cycletrace:
@@ -148,24 +128,13 @@ class Sim:
 			return f"${arg:04x}"
 
 	def step(self):
-		instr,argtypes,args = self.memory[self.state.getpc()//2]
+		value = self.memory[self.state.getpc()//2]
+		instr,argtypes,args = self.encoding.decode(value)
 
-		if instr == "none" or instr == "data":
-			self.exception(1, self.state.getpc(), f"Executing non-code ({instr}, {args})")
 
 		argsfmt = ', '.join([f"{self.format_arg(arg,typ)}" for arg,typ in zip(args,argtypes)])
 		regsfmt = "  ".join([" ".join([f"{self.state.ureg(n+1):04x}" for n in range(m,m+4)]) for m in range(0,8,4)])
 		self.log.trace(f"{self.state.getpc():04x}   {instr:<6}  {argsfmt:<20}   {regsfmt}")
-
-
-		# Apply decoding fixups
-		if instr == "ori" and args[1] == 2:
-			assert argtypes == "rri"
-			instr,argtypes,args = "li", "ri", [args[0], args[2]]
-
-		if instr in { "beq", "bne", "bge", "blt" } and args[1] == args[0]:
-			assert argtypes == "rri"
-			instr,argtypes,args = instr+"z", "ri", args[1:]
 
 
 		# Dispatch the instruction
@@ -197,7 +166,7 @@ class Sim:
 			# Look at the instruction at sym - if it's addi sp, sp, -nnn then we know the likely frame size
 			symaddr = addr - offset
 			
-			typ,types,value = self.memory[symaddr // 2]
+			typ,types,value = self.encoding.decode(self.memory[symaddr // 2])
 
 			if typ == "addi" and types == "rri":
 				if value[0] == 2 and value[1] == 2 and value[2] < 0 and value[2] > -128:
@@ -339,6 +308,13 @@ if __name__ == "__main__":
 
 		debuginfo = assembler.builddebuginfo()
 
+	print("Encoding...")
+	encoding = Encoding()
+	mem = [0] * 32768
+	for i,(instr,argtypes,args) in enumerate(code):
+		if instr != "none":
+			mem[i] = encoding.encode(instr, argtypes, args)
+
 	print("Simulating...")
 
 	log = Log()
@@ -351,7 +327,7 @@ if __name__ == "__main__":
 	else:
 		simulation = MicrocodeSimulation
 
-	sim = Sim(simulation, code, entry, log, debuginfo)
+	sim = Sim(simulation, mem, entry, log, debuginfo)
 		
 	while sim.step():
 		pass

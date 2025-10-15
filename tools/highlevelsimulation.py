@@ -40,11 +40,11 @@ class HighLevelSimulation:
 		def jalr_rri(st, rd, rs1, imm): dest=st.sreg(rs1) ; st.setreg(rd, st.getpc() + 2) ; st.setpc(dest       + imm - 2)
 		def jr_ri   (st,     rs1, imm): dest=st.sreg(rs1) ;                                 st.setpc(dest       + imm - 2)
 
-		def lb_ror (st,  rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
-		def lbu_ror(st,  rd, imm, rs1): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)) & 0xff)
-		def lw_ror (st,  rd, imm, rs1): st.setreg(rd, st.memreadw(imm + st.sreg(rs1)))
-		def sb_ror (st, rs1, imm, rs2): st.memwriteb(imm + st.sreg(rs2), st.sreg(rs1))
-		def sw_ror (st, rs1, imm, rs2): st.memwritew(imm + st.sreg(rs2), st.sreg(rs1))
+		def lb_rri (st,  rd, rs1, imm): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
+		def lbu_rri(st,  rd, rs1, imm): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)) & 0xff)
+		def lw_rri (st,  rd, rs1, imm): st.setreg(rd, st.memreadw(imm + st.sreg(rs1)))
+		def sb_rri (st, rs1, rs2, imm): st.memwriteb(imm + st.sreg(rs2), st.sreg(rs1))
+		def sw_rri (st, rs1, rs2, imm): st.memwritew(imm + st.sreg(rs2), st.sreg(rs1))
 
 		def ecall_(st): st.ecall()
 
@@ -88,7 +88,7 @@ class HighLevelSimulation:
 
 		def setpc(self, value, cond=True):
 			if cond:
-				self.pc = value
+				self.pc = value & 0xffff
 
 		def memreadw(self, addr): return self.env.memreadw(addr)
 		def memreadb(self, addr): return self.env.memreadb(addr)
