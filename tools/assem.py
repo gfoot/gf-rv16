@@ -109,7 +109,7 @@ class Assembler:
 			if instr != "data":
 				argsstr = format_args(args, argtypes)
 				if self.expectations:
-					if self.expectations[0] != f"{instr} {argsstr}".lower():
+					if self.expectations[0] != f"{instr} {argsstr}".lower().strip():
 						self.error(f"Expected {self.expectations[0]}")
 					self.expectations = self.expectations[1:]
 
@@ -515,10 +515,6 @@ class Assembler:
 
 
 	def filtered_emit(self, instr, argtypes, value_args, comment, changed = False):
-		if instr == "unimp":
-			self.emit("lui", "ri", (8, 0), comment)
-			return
-
 		if instr == "nop":
 			self.filtered_emit("mv", "rr", (8,8), comment, True)
 			return
@@ -558,27 +554,21 @@ class Assembler:
 			rd,rs1 = value_args
 			if rs1 == 0:
 				self.filtered_emit("li", "ri", [rd, 0], comment, True)
-			else:
-				self.emit("neg", "rrr", [rd, rs1, rs1], comment)
-			return
+				return
 
 		if instr == "snez":
 			assert argtypes == "rr"
 			rd,rs1 = value_args
 			if rs1 == 0:
 				self.filtered_emit("li", "ri", [rd, 0], comment, True)
-			else:
-				self.emit("snez", "rrr", [rd, rs1, rs1], comment)
-			return
+				return
 
 		if instr == "sgtz":
 			assert argtypes == "rr"
 			rd,rs1 = value_args
 			if rs1 == 0:
 				self.filtered_emit("li", "ri", [rd, 0], comment, True)
-			else:
-				self.emit("sgtz", "rrr", [rd, rs1, rs1], comment)
-			return
+				return
 
 		if instr == "seqz":
 			assert argtypes == "rr"

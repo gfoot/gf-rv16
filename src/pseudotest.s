@@ -8,7 +8,7 @@ local_distant_thing = *+$4000
 _start:
 
 	# %hi, %lo
-	lui		t0, %hi(global_thing)                     # EXPECT: srli x8, x8, 16
+	lui		t0, %hi(global_thing)                     # EXPECT: li x8, 0
 	addi	t0, t0, %lo(global_thing)                 # EXPECT: addi8 x8, -18
 
 	# %pcrel_hi, %pcrel_lo
@@ -16,7 +16,7 @@ _start:
 	addi	t0, t0, %pcrel_lo(1b)                     # EXPECT: addi8 x8, -4
 
 	# unimp
-	unimp                                  # EXPECT: lui x8, 0
+	unimp                                  # EXPECT: unimp 
 
 	# nop
 	nop                                    # EXPECT: slli x8, x8, 0
@@ -25,10 +25,10 @@ _start:
 	mv		t0, ra                         # EXPECT: slli x8, x1, 0
 
 	# li
-	li		t0, 0                          # EXPECT: srli x8, x8, 16
-	li		t0, -16                        # EXPECT: ori x8, x2, -16
-	li		t0, 16                         # EXPECT: ori x8, x2, 16
-	li		t0, global_thing               # EXPECT: srli x8, x8, 16 : addi8 x8, -18
+	li		t0, 0                          # EXPECT: li x8, 0
+	li		t0, -16                        # EXPECT: li x8, -16
+	li		t0, 16                         # EXPECT: li x8, 16
+	li		t0, global_thing               # EXPECT: li x8, 0 : addi8 x8, -18
 	li		t0, global_aligned             # EXPECT: lui x8, $ff00
 
 	# la
@@ -46,7 +46,7 @@ _start:
 
 	# call label => auipc ra, ... : addi : jalr ra, ra, ...
 1:
-	call	local_distant_thing       # EXPECT: auipc x1, $4000 : addi8 x1, -60 : jalr x1, x1, 0
+	call	local_distant_thing       # EXPECT: auipc x1, $4000 : addi8 x1, -60 : jalr x1, 0
 	call	1b                        # EXPECT: jal x1, -6
 
 	# tail label		=> jump label, t1
@@ -63,9 +63,9 @@ _start:
 	jal		1b                         # EXPECT: jal x1, 0
 
 	# jalr rs => jalr ra, rs, 0
-	jalr	a0                         # EXPECT: jalr x1, x5, 0
-	jalr	ra, a0                     # EXPECT: jalr x1, x5, 0
-	jalr	a0, 4                      # EXPECT: jalr x1, x5, 4
+	jalr	a0                         # EXPECT: jalr x5, 0
+	jalr	ra, a0                     # EXPECT: jalr x5, 0
+	jalr	a0, 4                      # EXPECT: jalr x5, 4
 
 	# not rd, rs => xori rd, rs, -1
 	not		a0, a1                        # EXPECT: xori x5, x6, -1
@@ -73,30 +73,30 @@ _start:
 
 	# seqz rd, rs => sltiu rd, rs, 1
 	seqz	a0, a1                        # EXPECT: sltiu x5, x6, 1
-	seqz	a0, zero                      # EXPECT: ori x5, x2, 1
+	seqz	a0, zero                      # EXPECT: li x5, 1
 	seqz	zero, a1                      # EXPECT: slli x8, x8, 0
 
 	# sltz rd, rs => slt rd, rs, x0
 	sltz	a0, a1                        # EXPECT: slti x5, x6, 0
-	sltz	a0, zero                      # EXPECT: srli x5, x5, 16
+	sltz	a0, zero                      # EXPECT: li x5, 0
 	sltz	zero, a1                      # EXPECT: slli x8, x8, 0
 
 	# Not pseudo in this arch as x0 doesn't exist
 	# snez rd, rs => sltu rd, x0, rs
-	snez	a0, a1                        # EXPECT: snez x5, x6, x6
-	snez	a0, zero                      # EXPECT: srli x5, x5, 16
+	snez	a0, a1                        # EXPECT: snez x5, x6
+	snez	a0, zero                      # EXPECT: li x5, 0
 	snez	zero, a1                      # EXPECT: slli x8, x8, 0
 
 	# Not pseudo in this arch as x0 doesn't exist
 	# sgtz rd, rs => slt rd, x0, rs
-	sgtz	a0, a1                        # EXPECT: sgtz x5, x6, x6
-	sgtz	a0, zero                      # EXPECT: srli x5, x5, 16
+	sgtz	a0, a1                        # EXPECT: sgtz x5, x6
+	sgtz	a0, zero                      # EXPECT: li x5, 0
 	sgtz	zero, a1                      # EXPECT: slli x8, x8, 0
 
 	# Not pseudo in this arch as x0 doesn't exist
 	# neg rd, rs => sub rd, x0, rs
-	neg		a0, a1                        # EXPECT: neg x5, x6, x6
-	neg		a0, zero                      # EXPECT: srli x5, x5, 16
+	neg		a0, a1                        # EXPECT: neg x5, x6
+	neg		a0, zero                      # EXPECT: li x5, 0
 	neg		zero, a1                      # EXPECT: slli x8, x8, 0
 
 
@@ -104,78 +104,78 @@ _start:
 	# when it is used in instructions
 
 	addi	a0, a1, 0          # EXPECT: slli x5, x6, 0
-	addi	a0, zero, 4        # EXPECT: ori x5, x2, 4
+	addi	a0, zero, 4        # EXPECT: li x5, 4
 	addi	zero, a1, 4        # EXPECT: slli x8, x8, 0
 
-	andi	a0, a1, 0          # EXPECT: srli x5, x5, 16
-	andi	a0, zero, 4        # EXPECT: srli x5, x5, 16
+	andi	a0, a1, 0          # EXPECT: li x5, 0
+	andi	a0, zero, 4        # EXPECT: li x5, 0
 	andi	zero, a1, 4        # EXPECT: slli x8, x8, 0
 
 	ori		a0, a1, 0          # EXPECT: slli x5, x6, 0
-	ori		a0, zero, 4        # EXPECT: ori x5, x2, 4
+	ori		a0, zero, 4        # EXPECT: li x5, 4
 	ori		zero, a1, 4        # EXPECT: slli x8, x8, 0
 
 	xori	a0, a1, 0          # EXPECT: slli x5, x6, 0
-	xori	a0, zero, 4        # EXPECT: ori x5, x2, 4
+	xori	a0, zero, 4        # EXPECT: li x5, 4
 	xori	zero, a1, 4        # EXPECT: slli x8, x8, 0
 
 	slti	a0, a1, 0          # EXPECT: slti x5, x6, 0
-	slti	a0, zero, 4        # EXPECT: ori x5, x2, 1
-	slti	a0, zero, -4       # EXPECT: srli x5, x5, 16
+	slti	a0, zero, 4        # EXPECT: li x5, 1
+	slti	a0, zero, -4       # EXPECT: li x5, 0
 	slti	zero, a1, 4        # EXPECT: slli x8, x8, 0
 
-	sltiu	a0, a1, 0          # EXPECT: srli x5, x5, 16
-	sltiu	a0, zero, 4        # EXPECT: ori x5, x2, 1
-	sltiu	a0, zero, -4       # EXPECT: ori x5, x2, 1
+	sltiu	a0, a1, 0          # EXPECT: li x5, 0
+	sltiu	a0, zero, 4        # EXPECT: li x5, 1
+	sltiu	a0, zero, -4       # EXPECT: li x5, 1
 	sltiu	zero, a1, 4        # EXPECT: slli x8, x8, 0
 
 	slli	a0, a1, 0          # EXPECT: slli x5, x6, 0
 	srli	a0, a1, 0          # EXPECT: slli x5, x6, 0
 	srai	a0, a1, 0          # EXPECT: slli x5, x6, 0
 
-	slli	a0, zero, 4        # EXPECT: srli x5, x5, 16
-	srli	a0, zero, 4        # EXPECT: srli x5, x5, 16
-	srai	a0, zero, 4        # EXPECT: srli x5, x5, 16
+	slli	a0, zero, 4        # EXPECT: li x5, 0
+	srli	a0, zero, 4        # EXPECT: li x5, 0
+	srai	a0, zero, 4        # EXPECT: li x5, 0
 
 	add		a0, a1, zero       # EXPECT: slli x5, x6, 0
 	add		a0, zero, a1       # EXPECT: slli x5, x6, 0
-	add		a0, zero, zero     # EXPECT: srli x5, x5, 16
+	add		a0, zero, zero     # EXPECT: li x5, 0
 	add		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
-	and		a0, a1, zero       # EXPECT: srli x5, x5, 16
-	and		a0, zero, a1       # EXPECT: srli x5, x5, 16
-	and		a0, zero, zero     # EXPECT: srli x5, x5, 16
+	and		a0, a1, zero       # EXPECT: li x5, 0
+	and		a0, zero, a1       # EXPECT: li x5, 0
+	and		a0, zero, zero     # EXPECT: li x5, 0
 	and		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
 	or		a0, a1, zero       # EXPECT: slli x5, x6, 0
 	or		a0, zero, a1       # EXPECT: slli x5, x6, 0
-	or		a0, zero, zero     # EXPECT: srli x5, x5, 16
+	or		a0, zero, zero     # EXPECT: li x5, 0
 	or		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
 	xor		a0, a1, zero       # EXPECT: slli x5, x6, 0
 	xor		a0, zero, a1       # EXPECT: slli x5, x6, 0
-	xor		a0, zero, zero     # EXPECT: srli x5, x5, 16
+	xor		a0, zero, zero     # EXPECT: li x5, 0
 	xor		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
 	sub		a0, a1, zero       # EXPECT: slli x5, x6, 0
-	sub		a0, zero, a1       # EXPECT: neg x5, x6, x6
-	sub		a0, zero, zero     # EXPECT: srli x5, x5, 16
+	sub		a0, zero, a1       # EXPECT: neg x5, x6
+	sub		a0, zero, zero     # EXPECT: li x5, 0
 	sub		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
 	sll		a0, a1, zero       # EXPECT: slli x5, x6, 0
 	srl		a0, a1, zero       # EXPECT: slli x5, x6, 0
 	sra		a0, a1, zero       # EXPECT: slli x5, x6, 0
 
-	sll		a0, zero, a1       # EXPECT: srli x5, x5, 16
-	srl		a0, zero, a1       # EXPECT: srli x5, x5, 16
-	sra		a0, zero, a1       # EXPECT: srli x5, x5, 16
+	sll		a0, zero, a1       # EXPECT: li x5, 0
+	srl		a0, zero, a1       # EXPECT: li x5, 0
+	sra		a0, zero, a1       # EXPECT: li x5, 0
 
 	slt		a0, a1, zero       # EXPECT: slti x5, x6, 0
-	slt		a0, zero, a1       # EXPECT: sgtz x5, x6, x6
+	slt		a0, zero, a1       # EXPECT: sgtz x5, x6
 	slt		zero, a1, a2       # EXPECT: slli x8, x8, 0
 
-	sltu	a0, a1, zero       # EXPECT: srli x5, x5, 16
-	sltu	a0, zero, a1       # EXPECT: snez x5, x6, x6
+	sltu	a0, a1, zero       # EXPECT: li x5, 0
+	sltu	a0, zero, a1       # EXPECT: snez x5, x6
 	sltu	zero, a1, a2       # EXPECT: slli x8, x8, 0
 
 
@@ -195,13 +195,13 @@ _start:
 
 	xor		a0, a1, a2         # EXPECT: xor x5, x7, x6
 	xor		a0, a2, a1         # EXPECT: xor x5, x7, x6
-	xor		a0, a1, a1         # EXPECT: srli x5, x5, 16
+	xor		a0, a1, a1         # EXPECT: li x5, 0
 
-	sub		a0, a1, a1         # EXPECT: srli x5, x5, 16
+	sub		a0, a1, a1         # EXPECT: li x5, 0
 
-	slt		a0, a1, a1         # EXPECT: srli x5, x5, 16
+	slt		a0, a1, a1         # EXPECT: li x5, 0
 
-	sltu	a0, a1, a1         # EXPECT: srli x5, x5, 16
+	sltu	a0, a1, a1         # EXPECT: li x5, 0
 
 
 	# These are not supported in any form, so generate an error
@@ -222,10 +222,10 @@ _start:
 	bleu	a0, a1, _start        # EXPECT: bltu x6, x5, 4 : j -$0130
 	beq		a0, a1, _start        # EXPECT: bne x5, x6, 4 : j -$0134
 
-	bnez	a0, _start            # EXPECT: beqz x5, x5, 4 : j -$0138
-	beqz	a0, _start            # EXPECT: bnez x5, x5, 4 : j -$013c
-	bgez	a0, _start            # EXPECT: bltz x5, x5, 4 : j -$0140
-	bltz	a0, _start            # EXPECT: bgez x5, x5, 4 : j -$0144
+	bnez	a0, _start            # EXPECT: beqz x5, 4 : j -$0138
+	beqz	a0, _start            # EXPECT: bnez x5, 4 : j -$013c
+	bgez	a0, _start            # EXPECT: bltz x5, 4 : j -$0140
+	bltz	a0, _start            # EXPECT: bgez x5, 4 : j -$0144
 
 	# For comparisons against 0, encode as comparison against self
 1:	beqz	a0, 1b                # EXPECT beq x5, x5, 0
@@ -235,8 +235,8 @@ _start:
 
 
 	# These are special though as ble and bgt are also pseudo-ops
-1:	blez	a0, 1b                # EXPECT: bltz x5, x5, 0 : beqz x5, x5, -2
-1:	bgtz	a0, 1b                # EXPECT: bltz x5, x5, 4 : bnez x5, x5, -2
+1:	blez	a0, 1b                # EXPECT: bltz x5, 0 : beqz x5, -2
+1:	bgtz	a0, 1b                # EXPECT: bltz x5, 4 : bnez x5, -2
 
 	# Branch pseudo-ops - swap args and direction of test
 1:	bgt		a0, a1, 1b            # EXPECT: blt x6, x5, 0

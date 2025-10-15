@@ -1,6 +1,8 @@
 # Instruction encoder
 
 encodings = """
+  0  0  0   0  0  0   0  0  0   0  0  0   0 0 0 0  	   1          	unimp
+
   iF iD iC  iB iA i9  i8 iE 0   d  d  d   0 0 0 0  	2048 (8,3)    	lui	rd, imm8hz
   iF iD iC  iB iA i9  i8 iE 1   d  d  d   0 0 0 0  	2048 (8,3)    	auipc	rd, imm8hz
                                                     
@@ -8,7 +10,7 @@ encodings = """
   i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 0   0 0 0 1  	 512 (9,)      	j	imm9ez
   i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 1   0 0 0 1  	 512 (9,)      	jal	ra, imm9ez
   i5 i0 i4  i3 i2 i1  1  0  1   d  d  d   0 0 0 1  	 512 (6,3)    	li	rd, imm6z
-  i6 i5 i4  i3 i2 i1  1  1  1   s3 s3 s3  0 0 0 1  	 512 (6,3)    	.	ra, rs3, imm6ez
+  .  .  .   .  .  .   1  1  1   .  .  .   0 0 0 1  	 512 (6,3)    	.	
                                                    
   i6 i5 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 0 1 0  	4096 (6,3,3) 	lw	rd, rs1, imm6ez
   i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  0 0 1 1  	4096 (6,3,3) 	sw	rs3, rs1, imm6ez
@@ -394,7 +396,7 @@ class Encoding:
 
 	def decode(self, encodedvalue):
 		if encodedvalue == 0 or encodedvalue == 0xffff:
-			return ("unimp", "", [])
+			return ("unimp", "", tuple())
 
 		matches = []
 		for instr in self.instrs.values():
@@ -404,7 +406,7 @@ class Encoding:
 
 		# Use the most specific match (most mask bits set)
 		bestmask = 0
-		bestdecoding = ("unimp", "", [])
+		bestdecoding = ("unimp", "", tuple())
 		for instr,decoding in matches:
 			if instr.mask & bestmask != instr.mask:
 				bestmask = instr.mask

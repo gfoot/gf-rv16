@@ -10,7 +10,10 @@ ISA design
 
 System software
  * Make the code use MMIO instead of ecalls for I/O
+	ecalls would be fine if an OS handled them but it'd still need to redirect to MMIO
+	The problem right now is the simulator is handling the ecall
  * On-device ebreak/callstack handling
+	Again the problem is the simulator is doing all the work, which won't work with hardware
 
 Assembler
  * Should listing files show literal interpretation of encoded instructions, or logical purpose?
