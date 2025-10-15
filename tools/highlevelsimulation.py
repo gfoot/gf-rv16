@@ -15,6 +15,7 @@ class HighLevelSimulation:
 		def sltu_rrr(st, rd, rs1, rs2): st.setreg(rd, st.ureg(rs1) < st.ureg(rs2))
 
 		def addi_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) + imm)
+		def addi8_ri (st, rd, imm): st.setreg(rd, st.sreg(rd) + imm)
 		def andi_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) & imm)
 		def ori_rri  (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) | imm)
 		def xori_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) ^ imm)
@@ -49,10 +50,10 @@ class HighLevelSimulation:
 
 		# Special cases for certain argument values
 		def li_ri(st, rd, imm): st.setreg(rd, imm)
-		def beqz_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == 0)
-		def bnez_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != 0)
-		def bltz_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  0)
-		def bgez_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= 0)
+		def beqz_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == 0)
+		def bnez_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != 0)
+		def bltz_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  0)
+		def bgez_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= 0)
 
 
 		def dispatch(self, st, instr, argtypes, args):

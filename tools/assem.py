@@ -7,6 +7,8 @@ import parse
 import disassem
 import isaprops
 
+from encode import Encoding
+
 
 DEBUG = 0
 
@@ -40,10 +42,12 @@ branchopposites = {
 	"blt":  "bge", 
 	"bgt":  "ble", 
 	"bltu": "bgeu",  
+	"bltz": "bgez",  
 	"bgtu": "bleu",  
 	"bne":  "beq", 
 	"bnez": "beqz", 
 	"bge":  "blt", 
+	"bgez":  "bltz", 
 	"ble":  "bgt", 
 	"bgeu": "bltu", 
 	"bleu": "bgtu",  
@@ -523,6 +527,11 @@ class Assembler:
 			self.filtered_emit("nop", "", [], comment, True)
 			return
 
+		if instr == "addi" and argtypes == "rri" and value_args[0] == value_args[1]:
+			rd,rs1,imm = value_args
+			self.filtered_emit("addi8", "ri", [rd, imm], comment, True)
+			return
+
 		if instr == "ld" or instr == "lhu" or instr == "lh":
 			self.filtered_emit("lw", argtypes, value_args, comment, True)
 			return
@@ -550,7 +559,7 @@ class Assembler:
 			if rs1 == 0:
 				self.filtered_emit("li", "ri", [rd, 0], comment, True)
 			else:
-				self.emit("sub", "rrr", [rd, rs1, rs1], comment)
+				self.emit("neg", "rrr", [rd, rs1, rs1], comment)
 			return
 
 		if instr == "snez":
@@ -559,7 +568,7 @@ class Assembler:
 			if rs1 == 0:
 				self.filtered_emit("li", "ri", [rd, 0], comment, True)
 			else:
-				self.emit("sltu", "rrr", [rd, rs1, rs1], comment)
+				self.emit("snez", "rrr", [rd, rs1, rs1], comment)
 			return
 
 		if instr == "sgtz":
@@ -568,7 +577,7 @@ class Assembler:
 			if rs1 == 0:
 				self.filtered_emit("li", "ri", [rd, 0], comment, True)
 			else:
-				self.emit("slt", "rrr", [rd, rs1, rs1], comment)
+				self.emit("sgtz", "rrr", [rd, rs1, rs1], comment)
 			return
 
 		if instr == "seqz":
@@ -694,7 +703,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
+			if lo:
+				self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
 			return
 
 		if instr == "lui":
@@ -715,7 +725,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
+			if lo:
+				self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
 			self.filtered_emit(instr, "ror", [reg, 0, reg], comment, True)
 			return
 
@@ -726,7 +737,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [rs2, hi], comment, True)
-			self.filtered_emit("addi", "rri", [rs2, rs2, lo], comment, True)
+			if lo:
+				self.filtered_emit("addi", "rri", [rs2, rs2, lo], comment, True)
 			self.filtered_emit(instr, "ror", [rs1, 0, rs2], comment, True)
 			return
 
@@ -743,7 +755,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
+			if lo:
+				self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
 			self.filtered_emit("jalr", "rri", [reg, reg, 0], comment, True)
 			return
 
@@ -758,7 +771,8 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcshift)
 
 			self.filtered_emit("auipc", "ri", [rt, hi], comment, True)
-			self.filtered_emit("addi", "rri", [rt, rt, lo], comment, True)
+			if lo:
+				self.filtered_emit("addi", "rri", [rt, rt, lo], comment, True)
 			self.filtered_emit("jr", "ri", [rt, 0], comment, True)
 			return
 
@@ -792,29 +806,29 @@ class Assembler:
 			self.filtered_emit("jr", "ri", [self.isaprops.regnum("ra"), 0], comment, True)
 			return
 
-		if instr == "beqz":
-			assert argtypes == "ri"
-			reg, value = value_args
-			self.filtered_emit("beq", "rri", [reg, 0, value], comment, True)
-			return
-
-		if instr == "bnez":
-			assert argtypes == "ri"
-			reg, value = value_args
-			self.filtered_emit("bne", "rri", [reg, 0, value], comment, True)
-			return
-
-		if instr == "bgez":
-			assert argtypes == "ri"
-			reg, value = value_args
-			self.filtered_emit("bge", "rri", [reg, 0, value], comment, True)
-			return
-
-		if instr == "bltz":
-			assert argtypes == "ri"
-			reg, value = value_args
-			self.filtered_emit("blt", "rri", [reg, 0, value], comment, True)
-			return
+#		if instr == "beqz":
+#			assert argtypes == "ri"
+#			reg, value = value_args
+#			self.filtered_emit("beq", "rri", [reg, 0, value], comment, True)
+#			return
+#
+#		if instr == "bnez":
+#			assert argtypes == "ri"
+#			reg, value = value_args
+#			self.filtered_emit("bne", "rri", [reg, 0, value], comment, True)
+#			return
+#
+#		if instr == "bgez":
+#			assert argtypes == "ri"
+#			reg, value = value_args
+#			self.filtered_emit("bge", "rri", [reg, 0, value], comment, True)
+#			return
+#
+#		if instr == "bltz":
+#			assert argtypes == "ri"
+#			reg, value = value_args
+#			self.filtered_emit("blt", "rri", [reg, 0, value], comment, True)
+#			return
 
 		if instr == "blez":
 			assert argtypes == "ri"
@@ -834,7 +848,13 @@ class Assembler:
 			assert argtypes == "rri"
 			rs1, rs2, value = value_args
 			if rs2 == 0:
-				self.filtered_emit(instr, "rri", [rs1, rs1, value], comment, True)
+				self.filtered_emit(instr+"z", "rri", [rs1, rs1, value], comment, True)
+				return
+
+		if instr == "beqz" or instr == "bnez" or instr == "bgez" or instr == "bltz":
+			if argtypes == "ri":
+				reg, value = value_args
+				self.filtered_emit(instr, "rri", [reg, reg, value], comment, True)
 				return
 
 		if instr in branchswaps.keys():
@@ -868,4 +888,14 @@ if __name__ == "__main__":
 	print()
 	print("Disassembling...")
 	disassem.disassemble(result)
+
+	print()
+	print("Encoding...")
+	encoding = Encoding()
+	while result[-1][0] == "none":
+		result = result[:-1]
+	for instr,argtypes,args in result:
+		if instr != "none":
+			encodedvalue = encoding.encode(instr, argtypes, args)
+			print(f"{encodedvalue:04X}  {repr((instr, argtypes, args))}")
 

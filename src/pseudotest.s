@@ -9,11 +9,11 @@ _start:
 
 	# %hi, %lo
 	lui		t0, %hi(global_thing)                     # EXPECT: srli x8, x8, 16
-	addi	t0, t0, %lo(global_thing)                 # EXPECT: addi x8, x8, -18
+	addi	t0, t0, %lo(global_thing)                 # EXPECT: addi8 x8, -18
 
 	# %pcrel_hi, %pcrel_lo
 1:	auipc	t0, %pcrel_hi(local_distant_thing)        # EXPECT: auipc x8, $4000	
-	addi	t0, t0, %pcrel_lo(1b)                     # EXPECT: addi x8, x8, -4
+	addi	t0, t0, %pcrel_lo(1b)                     # EXPECT: addi8 x8, -4
 
 	# unimp
 	unimp                                  # EXPECT: lui x8, 0
@@ -28,32 +28,32 @@ _start:
 	li		t0, 0                          # EXPECT: srli x8, x8, 16
 	li		t0, -16                        # EXPECT: ori x8, x2, -16
 	li		t0, 16                         # EXPECT: ori x8, x2, 16
-	li		t0, global_thing               # EXPECT: srli x8, x8, 16 : addi x8, x8, -18
+	li		t0, global_thing               # EXPECT: srli x8, x8, 16 : addi8 x8, -18
 	li		t0, global_aligned             # EXPECT: lui x8, $ff00
 
 	# la
 	#	medium -8k <= x <= 8k - auipc : addi
-	la		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -26
+	la		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi8 x8, -26
 
 	# lw a0, var1 => auipc a0, %hi(var1) : addi a0, a0, %lo(var1) : lw a0, (a0)
-	lw		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -30 : lw x8, 0(x8)
-	lb		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -36 : lb x8, 0(x8)
-	lbu		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi x8, x8, -42 : lbu x8, 0(x8)
+	lw		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi8 x8, -30 : lw x8, 0(x8)
+	lb		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi8 x8, -36 : lb x8, 0(x8)
+	lbu		t0, local_distant_thing        # EXPECT: auipc x8, $4000 : addi8 x8, -42 : lbu x8, 0(x8)
 
 	# sw a0, var1, t0 => auipc t0, ... : addi ... : sw a0, ...(t0)
-	sw		a0, local_distant_thing, t0    # EXPECT: auipc x8, $4000 : addi x8, x8, -48 : sw x5, 0(x8)
-	sb		a0, local_distant_thing, t0    # EXPECT: auipc x8, $4000 : addi x8, x8, -54 : sb x5, 0(x8)
+	sw		a0, local_distant_thing, t0    # EXPECT: auipc x8, $4000 : addi8 x8, -48 : sw x5, 0(x8)
+	sb		a0, local_distant_thing, t0    # EXPECT: auipc x8, $4000 : addi8 x8, -54 : sb x5, 0(x8)
 
 	# call label => auipc ra, ... : addi : jalr ra, ra, ...
 1:
-	call	local_distant_thing       # EXPECT: auipc x1, $4000 : addi x1, x1, -60 : jalr x1, x1, 0
+	call	local_distant_thing       # EXPECT: auipc x1, $4000 : addi8 x1, -60 : jalr x1, x1, 0
 	call	1b                        # EXPECT: jal x1, -6
 
 	# tail label		=> jump label, t1
-	tail	local_distant_thing       # EXPECT: auipc x8, $4000 : addi x8, x8, -68 : jr x8, 0
+	tail	local_distant_thing       # EXPECT: auipc x8, $4000 : addi8 x8, -68 : jr x8, 0
 
 	# jump label, rd	=> auipc rd, ... : addi ... : jr rd, ...
-	jump	local_distant_thing, a2   # EXPECT: auipc x7, $4000 : addi x7, x7, -74 : jr x7, 0
+	jump	local_distant_thing, a2   # EXPECT: auipc x7, $4000 : addi8 x7, -74 : jr x7, 0
 
 	# ret => jr ra, 0
 	ret                               # EXPECT: jr x1, 0
@@ -83,19 +83,19 @@ _start:
 
 	# Not pseudo in this arch as x0 doesn't exist
 	# snez rd, rs => sltu rd, x0, rs
-	snez	a0, a1                        # EXPECT: sltu x5, x6, x6
+	snez	a0, a1                        # EXPECT: snez x5, x6, x6
 	snez	a0, zero                      # EXPECT: srli x5, x5, 16
 	snez	zero, a1                      # EXPECT: slli x8, x8, 0
 
 	# Not pseudo in this arch as x0 doesn't exist
 	# sgtz rd, rs => slt rd, x0, rs
-	sgtz	a0, a1                        # EXPECT: slt x5, x6, x6
+	sgtz	a0, a1                        # EXPECT: sgtz x5, x6, x6
 	sgtz	a0, zero                      # EXPECT: srli x5, x5, 16
 	sgtz	zero, a1                      # EXPECT: slli x8, x8, 0
 
 	# Not pseudo in this arch as x0 doesn't exist
 	# neg rd, rs => sub rd, x0, rs
-	neg		a0, a1                        # EXPECT: sub x5, x6, x6
+	neg		a0, a1                        # EXPECT: neg x5, x6, x6
 	neg		a0, zero                      # EXPECT: srli x5, x5, 16
 	neg		zero, a1                      # EXPECT: slli x8, x8, 0
 
@@ -158,7 +158,7 @@ _start:
 	xor		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
 	sub		a0, a1, zero       # EXPECT: slli x5, x6, 0
-	sub		a0, zero, a1       # EXPECT: sub x5, x6, x6
+	sub		a0, zero, a1       # EXPECT: neg x5, x6, x6
 	sub		a0, zero, zero     # EXPECT: srli x5, x5, 16
 	sub		zero, a0, a1       # EXPECT: slli x8, x8, 0
 
@@ -171,11 +171,11 @@ _start:
 	sra		a0, zero, a1       # EXPECT: srli x5, x5, 16
 
 	slt		a0, a1, zero       # EXPECT: slti x5, x6, 0
-	slt		a0, zero, a1       # EXPECT: slt x5, x6, x6
+	slt		a0, zero, a1       # EXPECT: sgtz x5, x6, x6
 	slt		zero, a1, a2       # EXPECT: slli x8, x8, 0
 
 	sltu	a0, a1, zero       # EXPECT: srli x5, x5, 16
-	sltu	a0, zero, a1       # EXPECT: sltu x5, x6, x6
+	sltu	a0, zero, a1       # EXPECT: snez x5, x6, x6
 	sltu	zero, a1, a2       # EXPECT: slli x8, x8, 0
 
 
@@ -222,10 +222,10 @@ _start:
 	bleu	a0, a1, _start        # EXPECT: bltu x6, x5, 4 : j -$0130
 	beq		a0, a1, _start        # EXPECT: bne x5, x6, 4 : j -$0134
 
-	bnez	a0, _start            # EXPECT: beq x5, x5, 4 : j -$0138
-	beqz	a0, _start            # EXPECT: bne x5, x5, 4 : j -$013c
-	bgez	a0, _start            # EXPECT: blt x5, x5, 4 : j -$0140
-	bltz	a0, _start            # EXPECT: bge x5, x5, 4 : j -$0144
+	bnez	a0, _start            # EXPECT: beqz x5, x5, 4 : j -$0138
+	beqz	a0, _start            # EXPECT: bnez x5, x5, 4 : j -$013c
+	bgez	a0, _start            # EXPECT: bltz x5, x5, 4 : j -$0140
+	bltz	a0, _start            # EXPECT: bgez x5, x5, 4 : j -$0144
 
 	# For comparisons against 0, encode as comparison against self
 1:	beqz	a0, 1b                # EXPECT beq x5, x5, 0
@@ -235,8 +235,8 @@ _start:
 
 
 	# These are special though as ble and bgt are also pseudo-ops
-1:	blez	a0, 1b                # EXPECT: blt x5, x5, 0 : beq x5, x5, -2
-1:	bgtz	a0, 1b                # EXPECT: blt x5, x5, 4 : bne x5, x5, -2
+1:	blez	a0, 1b                # EXPECT: bltz x5, x5, 0 : beqz x5, x5, -2
+1:	bgtz	a0, 1b                # EXPECT: bltz x5, x5, 4 : bnez x5, x5, -2
 
 	# Branch pseudo-ops - swap args and direction of test
 1:	bgt		a0, a1, 1b            # EXPECT: blt x6, x5, 0
