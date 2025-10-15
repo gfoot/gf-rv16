@@ -1,0 +1,15 @@
+Constants used on bus A:
+
+    0x00	
+    0x01	SLTU
+    0x03	ECALL
+    0x05	*IRQ
+    0x7f	SGTZ
+    0xff	
+
+0x00 can be output from the immediate system.
+
+ECALL and *IRQ could use immediate bits in the instruction to set their constants
+
+SLTU could probably manage without 0x01 if it used marn (i.e. mar = 0xff+c ; rd_lo = marn )
+
