@@ -291,8 +291,7 @@ class Instr:
 		# Check the decoding
 		decoded = self.decode(result)
 		assert decoded, f"'{self.name}' ({args}): decoding '{result:04X}' failed"
-		decodedname,decodedargtypes,decodedargs = decoded
-		assert (decodedname,decodedargtypes,decodedargs) == (self.name, orig_argtypes, orig_unsigned_args), f"'{self.name}' ({args}): decode mismatch: {decoded} vs {(self.name,argtypes,unsignedargs)}"
+		assert decoded == (self.name, orig_argtypes, orig_unsigned_args), f"'{self.name}' ({args}): decode mismatch: {decoded} vs {(self.name,orig_argtypes,orig_unsigned_args)}"
 
 		return result
 

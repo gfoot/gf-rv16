@@ -1,36 +1,80 @@
 Some things to do at some point
 
+Priorities:
+ * Check jump/branch in simulator, "jimm" operands feel like cheating
+ * MMIO
+ * IRQs
+ * Write more code
+
+
 ISA design
+
  * Redo the ISA encoding and pin down immediate widths
- * Encode immediate widths in the microcode
- * Make the microcode simulator check parameters are reasonable
- * Make the assembler output binary, and make the simulator read it
- * Write a thorough instruction set test suite
+	I think this is mostly settled now, there are some holes in the encoding space that could be
+	filled if the need arises and it would be nice to increase JAL's range but I want to write a
+	larger amount of code before making a call on that based on statistics
+
+ * Write a thorough instruction set test suite (hard)
+	There are lots of possible inputs to each instruction, too many to test, and important
+	edge cases do exist but are hard to identify
+
  * Make sure SLTI works properly, it might require its immediate to be inverted by the encoder
 
+
 System software
+
  * Make the code use MMIO instead of ecalls for I/O
 	ecalls would be fine if an OS handled them but it'd still need to redirect to MMIO
 	The problem right now is the simulator is handling the ecall
+
  * On-device ebreak/callstack handling
 	Again the problem is the simulator is doing all the work, which won't work with hardware
 
+
 Assembler
+
+ * Make isaprops.py derive the ISA capabilities from encode.py
+	Currently it hardcodes its own ideas about immediate widths for various instructions
+
  * Should listing files show literal interpretation of encoded instructions, or logical purpose?
 	i.e. slli x8,x8,16 or li x8,0?  ori x1,x2,12 or li x1,12?  bne x5,x5,6 or bnez x5,6?
+	GNU assembler condenses things to canonical forms and even pseudoinstructions, like my
+	disassembler does already, so maybe that's the way to go
+
  * Should listing files show branches and jumps with absolute or relative addresses?
 	pseudotest.s expects relative addresses
+	GNU assembler shows absolute addresses along with label names in angle brackets
+	If I use absolute addresses it becomes less clear what is actually being encoded
+	and pseudotest is less useful overall
+
  * Should it use the list of PC-relative instructions, or be more dynamic about that?
+	I think it needs a list, though it could be generated from encode.py
+
 
 Simulator/debugging
+
+ * Check the way jumps/branches interact with pc, make sure it's not cheating
+
  * MMIO support
+	Need at least: write character, read character, check if character is available to read
+	Could also provide: hardware timer(s)
+
  * IRQ generation and correct IRQ handler simulation
+	Need: IRQ on character available
+	Could: IRQ on timer expiry
+
  * Core dump and offline debugger
+
  * REPL for simulator (single step, breakpoints, etc)
+
  * Log memory reads and writes in traces
 
+
 Hardware design
+
  * Design and validate the instruction fetch/program counter electronics
+
  * Try embedding control signals in PLDs
+
  * Finish ALU design
 

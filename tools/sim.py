@@ -303,17 +303,10 @@ if __name__ == "__main__":
 	print(f"Assembling {filename}...")
 	with open(listingfilename, "w") as listingfile:
 		assembler = assem.Assembler()
-		code, entry = assembler.assemble(filename, listingfile)
+		mem, entry = assembler.assemble(filename, listingfile)
 		listingfile.close()
 
 		debuginfo = assembler.builddebuginfo()
-
-	print("Encoding...")
-	encoding = Encoding()
-	mem = [0] * 32768
-	for i,(instr,argtypes,args) in enumerate(code):
-		if instr != "none":
-			mem[i] = encoding.encode(instr, argtypes, args)
 
 	print("Simulating...")
 

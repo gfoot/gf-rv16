@@ -1,6 +1,8 @@
 import isaprops
+from encode import Encoding
 
 props = isaprops.IsaProps()
+encoding = Encoding()
 
 def format_arg(arg, typ):
 	if typ == "r":
@@ -20,22 +22,26 @@ def format_args(args, argtypes):
 	return ', '.join([format_arg(arg,typ) for arg,typ in zip(args, argtypes)])
 
 
+def printline(addr, value, text):
+	print(f"{2*addr:04x}: {value:04x}      {text}")
+
+
 def disassemble(mem):
-	on = False
-
-	for i,(instr,argtypes,args) in enumerate(mem):
-		if instr == "none":
-			if on:
-				print("...")
-				on = False
+	zerocount = 0
+	for i,value in enumerate(mem):
+		instr,argtypes,args = encoding.decode(value)
+		if value == 0:
+			zerocount += 1
 			continue
 
-		on = True
+		if zerocount > 4:
+			print(f"... zeros x{zerocount} ...")
+		else:
+			for z in range(zerocount):
+				printline(i-zerocount+z, value, ".word   0x0000")
 
-		if instr == "data":
-			print(f"{2*i:04x}   data    {format_arg(args, 'i')}")
-			continue
-	
+		zerocount = 0
+
 		if instr == "slli" and argtypes == "rri" and args[2] == 0:
 			if args[0] == args[1]:
 				instr = "nop"
@@ -46,8 +52,7 @@ def disassemble(mem):
 				argtypes = "rr"
 				args = (args[0], args[1])
 		elif instr == "j" or instr == "jal" and argtypes.endswith("i"):
-			args = args[:]
-			args[-1] += 2*i
+			args = args[:-1] + tuple([args[-1] + 2*i])
 			if instr == "jal" and argtypes == "ri" and args[0] == props.regnum("ra"):
 				instr = "call"
 				argtypes = "i"
@@ -75,5 +80,5 @@ def disassemble(mem):
 			argtypes = "rri"
 			args = args[:1] + args
 
-		print(f"{2*i:04x}   {instr:<6}  {format_args(args, argtypes)}")
+		printline(i, value, f"{instr:<6}  {format_args(args, argtypes)}")
 

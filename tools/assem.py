@@ -89,6 +89,7 @@ class Assembler:
 		self.printlisting = False
 
 		self.isaprops = isaprops.IsaProps()
+		self.encoding = Encoding()
 
 		self.builtinfuncs = {
 			"%lo": lambda value: self.calc_lo_hi(value, self.isaprops.luishift)[0],
@@ -100,10 +101,14 @@ class Assembler:
 
 	def emit(self, instr, argtypes, args, comment=""):
 
+		encodedvalue = 0
+		if self.assemblypass == self.lastpass:
+			encodedvalue = self.encoding.encode(instr, argtypes, args)
+
 		if self.assemblypass == self.lastpass or DEBUG:
 			if instr != "data":
 				argsstr = format_args(args, argtypes)
-				self.log_listing(f"{self.pos:04x}      {instr:<6} {argsstr:<20}   {'#' if comment else ''} {comment}")
+				self.log_listing(self.pos, encodedvalue, f"    {instr:<6} {argsstr:<20}   {'#' if comment else ''} {comment}")
 
 		if self.assemblypass == self.lastpass:
 			if instr != "data":
@@ -118,15 +123,21 @@ class Assembler:
 						if not self.isaprops.checkimmed(immed, instr):
 							self.error(f"Immediate argument {immed} to instruction {instr} violates constraints: {self.isaprops.immedconstraints(instr)}")
 
-		self.output[self.pos//2] = (instr, argtypes, args)
+		self.output[self.pos//2] = encodedvalue
+
 		self.pos += 2
 
 
-	def log_listing(self, s):
+	def log_listing(self, addr, data, s):
+		header = f"{addr:04x}: "
+		if data is not None:
+			header += f"{data:04x}"
+		line = f"{header:<12}{s}"
+
 		if self.listingfile:
-			self.listingfile.write(s+"\n")
+			self.listingfile.write(line+"\n")
 		if self.printlisting:
-			print(s)
+			print(line)
 
 
 	def error(self, s):
@@ -150,7 +161,8 @@ class Assembler:
 					return
 
 				self.converged = False
-				self.log_listing(f"non-convergence: label {name}: {self.labels[name]:4x} => {value:4x}")
+				if DEBUG:
+					print(f"pass {self.assemblypass} non-convergence: label {name}: {self.labels[name]:4x} => {value:4x}")
 
 				if self.assemblypass == self.lastpass:
 					self.error(f"Label redefinition: {name}")
@@ -276,7 +288,7 @@ class Assembler:
 			self.setlabel(name, value)
 
 			if self.assemblypass == self.lastpass:
-				self.log_listing(f"{self.pos:04x}  {name} = ${value:x}")
+				self.log_listing(self.pos, None, f"{name} = ${value:x}")
 
 			return
 
@@ -296,7 +308,7 @@ class Assembler:
 				self.setlabel(newname, self.pos, True)
 
 				if self.assemblypass == self.lastpass:
-					self.log_listing(f"{self.pos:04x}  {name}:    # {newname}")
+					self.log_listing(self.pos, None, f"{name}:    # {newname}")
 
 			else:
 
@@ -306,7 +318,7 @@ class Assembler:
 					self.currentsymbol = name
 
 				if self.assemblypass == self.lastpass:
-					self.log_listing(f"{self.pos:04x}  {name}:")
+					self.log_listing(self.pos, None, f"{name}:")
 
 		m = re_directive.match(line)
 		if m:
@@ -338,7 +350,7 @@ class Assembler:
 					for i in range(0,len(bytestowrite),16):
 						datastr = ','.join([f"{d:02X}" for d in bytestowrite[i:i+16]])
 						textstr = ''.join([chr(d) if d >= 32 and d < 128 else '.' for d in bytestowrite[i:i+16]])
-						self.log_listing(f"{self.pos+i:04x}      .byt   {datastr:<48}  # {textstr}")
+						self.log_listing(self.pos+i, None, f"    .byt   {datastr:<48}  # \"{textstr}\"")
 
 
 				for word in wordstowrite:
@@ -359,7 +371,7 @@ class Assembler:
 
 				if self.assemblypass == self.lastpass:
 					datastr = ','.join([f"{d:04X}" for d in wordstowrite])
-					self.log_listing(f"{self.pos:04X}      .word  {datastr}")
+					self.log_listing(self.pos, None, f"    .word  {datastr}")
 
 				for word in wordstowrite:
 					self.emit("data", "", word)
@@ -464,7 +476,7 @@ class Assembler:
 
 			self.pos = 0
 
-			self.output = [("none", "", 0)] * 32768
+			self.output = [0] * 32768
 
 			self.numrelativelabels = 0
 
@@ -831,26 +843,22 @@ class Assembler:
 
 if __name__ == "__main__":
 
-	print("Assembling...")
+	if "--debug" in sys.argv[1:]:
+		DEBUG = 1
+		sys.argv.remove("--debug")
+
+	if DEBUG:
+		print("Assembling...")
 	assembler = Assembler()
 	result, entry = assembler.assemble(sys.argv[1], sys.stdout)
 
-	print()
-	print("Symbols:")
-	for v,k in sorted([(v,k) for k,v in assembler.builddebuginfo().items()]):
-		print(f"  {v:04X} {k}")
+	if DEBUG:
+		print()
+		print("Symbols:")
+		for v,k in sorted([(v,k) for k,v in assembler.builddebuginfo().items()]):
+			print(f"  {v:04X} {k}")
 
-	print()
-	print("Disassembling...")
-	disassem.disassemble(result)
-
-	print()
-	print("Encoding...")
-	encoding = Encoding()
-	while result[-1][0] == "none":
-		result = result[:-1]
-	for instr,argtypes,args in result:
-		if instr != "none":
-			encodedvalue = encoding.encode(instr, argtypes, args)
-			print(f"{encodedvalue:04X}  {repr((instr, argtypes, args))}")
+		print()
+		print("Disassembling...")
+		disassem.disassemble(result)
 
