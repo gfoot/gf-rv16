@@ -15,7 +15,7 @@ class HighLevelSimulation:
 		def sltu_rrr(st, rd, rs1, rs2): st.setreg(rd, st.ureg(rs1) < st.ureg(rs2))
 
 		def addi_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) + imm)
-		def addi8_ri (st, rd, imm): st.setreg(rd, st.sreg(rd) + imm)
+		def addi8_ri (st, rd, imm):      st.setreg(rd, st.sreg(rd) + imm)
 		def andi_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) & imm)
 		def ori_rri  (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) | imm)
 		def xori_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) ^ imm)
@@ -25,20 +25,20 @@ class HighLevelSimulation:
 		def slti_rri (st, rd, rs1, imm): st.setreg(rd, st.sreg(rs1) < imm)
 		def sltiu_rri(st, rd, rs1, imm): st.setreg(rd, st.ureg(rs1) < imm)
 
-		def beq_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == st.sreg(rs2))
-		def bne_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != st.sreg(rs2))
-		def blt_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  st.sreg(rs2))
-		def bltu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) <  st.ureg(rs2))
-		def bge_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= st.sreg(rs2))
-		def bgeu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm - 2, st.ureg(rs1) >= st.ureg(rs2))
+		def beq_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) == st.sreg(rs2))
+		def bne_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) != st.sreg(rs2))
+		def blt_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) <  st.sreg(rs2))
+		def bltu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm, st.ureg(rs1) <  st.ureg(rs2))
+		def bge_rri (st, rs1, rs2, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) >= st.sreg(rs2))
+		def bgeu_rri(st, rs1, rs2, imm): st.setpc(st.getpc() + imm, st.ureg(rs1) >= st.ureg(rs2))
 
 		def lui_ri  (st, rd, imm): st.unimp() if imm == 0 else st.setreg(rd, imm)
 		def auipc_ri(st, rd, imm): st.setreg(rd, imm + st.getpc())
 
-		def j_i     (st,          imm):                                                     st.setpc(st.getpc() + imm - 2)
-		def jal_ri  (st, rd,      imm):                     st.setreg(rd, st.getpc() + 2) ; st.setpc(st.getpc() + imm - 2)
-		def jalr_ri (st,     rs1, imm): dest=st.sreg(rs1) ; st.setreg(1,  st.getpc() + 2) ; st.setpc(dest       + imm - 2)
-		def jr_ri   (st,     rs1, imm): dest=st.sreg(rs1) ;                                 st.setpc(dest       + imm - 2)
+		def j_i     (st,          imm):                                                st.setpc(st.getpc() + imm)
+		def jal_ri  (st, rd,      imm):                     st.setreg(rd, st.pcnext) ; st.setpc(st.getpc() + imm)
+		def jalr_ri (st,     rs1, imm): dest=st.sreg(rs1) ; st.setreg(1,  st.pcnext) ; st.setpc(dest       + imm)
+		def jr_ri   (st,     rs1, imm): dest=st.sreg(rs1) ;                            st.setpc(dest       + imm)
 
 		def lb_rri (st,  rd, rs1, imm): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)))
 		def lbu_rri(st,  rd, rs1, imm): st.setreg(rd, st.memreadb(imm + st.sreg(rs1)) & 0xff)
@@ -49,10 +49,10 @@ class HighLevelSimulation:
 		def ecall_(st): st.ecall()
 
 		def li_ri(st, rd, imm): st.setreg(rd, imm)
-		def beqz_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) == 0)
-		def bnez_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) != 0)
-		def bltz_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) <  0)
-		def bgez_ri(st, rs1, imm): st.setpc(st.getpc() + imm - 2, st.sreg(rs1) >= 0)
+		def beqz_ri(st, rs1, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) == 0)
+		def bnez_ri(st, rs1, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) != 0)
+		def bltz_ri(st, rs1, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) <  0)
+		def bgez_ri(st, rs1, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) >= 0)
 
 
 		def dispatch(self, st, instr, argtypes, args):
@@ -70,6 +70,7 @@ class HighLevelSimulation:
 
 			self.regs = [0] * 9
 			self.pc = 0
+			self.pcnext = 0
 
 		def setreg(self, num, value):
 			assert num > 0 and num < len(self.regs)
@@ -87,7 +88,11 @@ class HighLevelSimulation:
 
 		def setpc(self, value, cond=True):
 			if cond:
-				self.pc = value & 0xffff
+				self.pcnext = value & 0xffff
+
+		def advancepc(self):
+			self.pc = self.pcnext
+			self.pcnext += 2
 
 		def memreadw(self, addr): return self.env.memreadw(addr)
 		def memreadb(self, addr): return self.env.memreadb(addr)

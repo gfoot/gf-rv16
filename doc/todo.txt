@@ -1,7 +1,6 @@
 Some things to do at some point
 
 Priorities:
- * Check jump/branch in simulator, "jimm" operands feel like cheating
  * MMIO
  * IRQs
  * Write more code
@@ -53,8 +52,6 @@ Assembler
 
 Simulator/debugging
 
- * Check the way jumps/branches interact with pc, make sure it's not cheating
-
  * MMIO support
 	Need at least: write character, read character, check if character is available to read
 	Could also provide: hardware timer(s)
@@ -62,6 +59,8 @@ Simulator/debugging
  * IRQ generation and correct IRQ handler simulation
 	Need: IRQ on character available
 	Could: IRQ on timer expiry
+
+ * Simulate pipelined instruction fetch as part of microcode simulation
 
  * Core dump and offline debugger
 

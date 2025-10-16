@@ -1,82 +1,82 @@
 mnemonic               .	cycle	last	high	bus_a	bus_b	reg_r	aluop	mar_w	reg_w	reg_win	pc_w	mem_w	
                        .													
-JAL   ra, immj         . 	0		low	immj	pc		ad0		ra	pcnext	pc_w		
-                       .	1	1	high	immj	pc		adc		ra	pcnext	pc_w		
+JAL   ra, imm          . 	0		low	imm	pc		ad0		ra	pcnext	pc_w		
+                       .	1	1	high	imm	pc		adc		ra	pcnext	pc_w		
                        .													
-J     immj             .	0		low	immj	pc		ad0				pc_w		
-                       .	1	1	high	immj	pc		adc				pc_w		
+J     imm              .	0		low	imm	pc		ad0				pc_w		
+                       .	1	1	high	imm	pc		adc				pc_w		
                        .													
-JALR  rs1, immj        .	0		low	immj	regs	rs1	ad0		ra	pcnext	pc_w		
-                       .	1	1	high	immj	regs	rs1	adc		ra	pcnext	pc_w		
+JALR  rs1, imm         .	0		low	imm	regs	rs1	ad0		ra	pcnext	pc_w		
+                       .	1	1	high	imm	regs	rs1	adc		ra	pcnext	pc_w		
                        .													
-JR    rs1, immj        .	0		low	immj	regs	rs1	ad0				pc_w		
-                       .	1	1	high	immj	regs	rs1	adc				pc_w		
+JR    rs1, imm         .	0		low	imm	regs	rs1	ad0				pc_w		
+                       .	1	1	high	imm	regs	rs1	adc				pc_w		
                        .													
-BEQZ  rs1, immj        .	0		low	0x00	regs	rs1	xor	mar_w					
+BEQZ  rs1, imm         .	0		low	0x00	regs	rs1	xor	mar_w					
                        .	1	nz	high	mar	regs	rs1	or						
-                       .	2		low	immj	pc		ad0				pc_w		
-                       .	3	1	high	immj	pc		adc				pc_w		
+                       .	2		low	imm	pc		ad0				pc_w		
+                       .	3	1	high	imm	pc		adc				pc_w		
                        .													
-BNEZ  rs1, immj        .	0		low	0x00	regs	rs1	xor	mar_w					
+BNEZ  rs1, imm         .	0		low	0x00	regs	rs1	xor	mar_w					
                        .	1	z	high	mar	regs	rs1	or						
-                       .	2		low	immj	pc		ad0				pc_w		
-                       .	3	1	high	immj	pc		adc				pc_w		
+                       .	2		low	imm	pc		ad0				pc_w		
+                       .	3	1	high	imm	pc		adc				pc_w		
                        .													
-BLTZ  rs1, immj        .	0		high	0x00	regs	rs1	xor	mar_w					
+BLTZ  rs1, imm         .	0		high	0x00	regs	rs1	xor	mar_w					
                        .	1	z	high	0x00	marn		or						
-                       .	2		low	immj	pc		ad0				pc_w		
-                       .	3	1	high	immj	pc		adc				pc_w		
+                       .	2		low	imm	pc		ad0				pc_w		
+                       .	3	1	high	imm	pc		adc				pc_w		
                        .													
-BGEZ  rs1, immj        .	0		high	0x00	regs	rs1	xor	mar_w					
+BGEZ  rs1, imm         .	0		high	0x00	regs	rs1	xor	mar_w					
                        .	1	nz	high	0x00	marn		or						
-                       .	2		low	immj	pc		ad0				pc_w		
-                       .	3	1	high	immj	pc		adc				pc_w		
+                       .	2		low	imm	pc		ad0				pc_w		
+                       .	3	1	high	imm	pc		adc				pc_w		
                        .													
-BEQ   rs1, rs2, immj   .	0		low	0x00	regs	rs2	xor	mar_w			
+BEQ   rs1, rs2, imm    .	0		low	0x00	regs	rs2	xor	mar_w			
                        .	1	nz	low	mar	regs	rs1	xor     
                        .	2		high	0x00	regs	rs2	xor	mar_w					
                        .	3	nz	high	mar	regs	rs1	xor	
-                       .	4		low	immj	pc		ad0				pc_w		
-                       .	5	1	high	immj	pc		adc				pc_w		
+                       .	4		low	imm	pc		ad0				pc_w		
+                       .	5	1	high	imm	pc		adc				pc_w		
                        .													
-BNE   rs1, rs2, immj   .	0		low	0x00	regs	rs2	xor	mar_w			
+BNE   rs1, rs2, imm    .	0		low	0x00	regs	rs2	xor	mar_w			
                        .	1	z	low	mar	regs	rs1	xor     
                        .	2		high	0x00	regs	rs2	xor	mar_w					
                        .	3	z	high	mar	regs	rs1	xor	
-                       .	4		low	immj	pc		ad0				pc_w		
-                       .	5	1	high	immj	pc		adc				pc_w		
+                       .	4		low	imm	pc		ad0				pc_w		
+                       .	5	1	high	imm	pc		adc				pc_w		
                        .													
-BLT   rs1, rs2, immj   .	0		low	0xff	regs	rs2	xor	mar_w			
+BLT   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
                        .	1		low	mar	regs	rs1	ad1     			
                        .	2		high	0xff	regs	rs2	xor	mar_w					
                        .	3		high	mar	regs	rs1	adc	mar_w					
                        .	4	z	low	0x00	marn		ad0	
-                       .	5		low	immj	pc		ad0				pc_w		
-                       .	6	1	high	immj	pc		adc				pc_w		
+                       .	5		low	imm	pc		ad0				pc_w		
+                       .	6	1	high	imm	pc		adc				pc_w		
                        .													
-BGE   rs1, rs2, immj   .	0		low	0xff	regs	rs2	xor	mar_w			
+BGE   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
                        .	1		low	mar	regs	rs1	ad1     			
                        .	2		high	0xff	regs	rs2	xor	mar_w					
                        .	3		high	mar	regs	rs1	adc	mar_w					
                        .	4	nz	low	0x00	marn		ad0	
-                       .	5		low	immj	pc		ad0				pc_w		
-                       .	6	1	high	immj	pc		adc				pc_w
+                       .	5		low	imm	pc		ad0				pc_w		
+                       .	6	1	high	imm	pc		adc				pc_w
                        .													
-BLTU  rs1, rs2, immj   .	0		low	0xff	regs	rs2	xor	mar_w			
+BLTU  rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
                        .	1		low	mar	regs	rs1	ad1     			
                        .	2		high	0xff	regs	rs2	xor	mar_w					
                        .	3		high	mar	regs	rs1	adc						
                        .	4	nz	low	0x00	zero		adc	
-                       .	5		low	immj	pc		ad0				pc_w		
-                       .	6	1	high	immj	pc		adc				pc_w		
+                       .	5		low	imm	pc		ad0				pc_w		
+                       .	6	1	high	imm	pc		adc				pc_w		
                        .													
-BGEU  rs1, rs2, immj   .	0		low	0xff	regs	rs2	xor	mar_w			
+BGEU  rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
                        .	1		low	mar	regs	rs1	ad1     			
                        .	2		high	0xff	regs	rs2	xor	mar_w					
                        .	3		high	mar	regs	rs1	adc						
                        .	4	z	low	0x00	zero		adc	
-                       .	5		low	immj	pc		ad0				pc_w		
-                       .	6	1	high	immj	pc		adc				pc_w		
+                       .	5		low	imm	pc		ad0				pc_w		
+                       .	6	1	high	imm	pc		adc				pc_w		
                        .													
 LB    rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
                        .	1		high	imm	regs	rs1	adc	mar_w					

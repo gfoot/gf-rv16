@@ -142,7 +142,7 @@ class Sim:
 			self.exception(2, self.state.getpc(), f"Unsupported instruction '{instr}' with argtypes '{argtypes}'")
 
 
-		self.state.setpc(self.state.getpc() + 2)
+		self.state.advancepc()
 
 		return not self.stop
 

@@ -101,9 +101,6 @@ class MicrocodeSimulation:
 				st.ecall()
 				return True
 
-			nextpc = st.getpc() + 2
-			st.pcnext = [nextpc & 0xff, nextpc >> 8]
-
 			argtypes = argtypes.replace('o', 'i')
 
 			if instr not in instrs.keys():
@@ -164,7 +161,14 @@ class MicrocodeSimulation:
 
 		def setpc(self, value, cond=True):
 			if cond:
-				self.pc = [ value & 0xff, (value >> 8) & 0xff ]
+				self.pcnext = [ value & 0xff, (value >> 8) & 0xff ]
+
+		def advancepc(self):
+			self.pc = self.pcnext[:]
+			self.pcnext[0] += 2
+			if self.pcnext[0] > 0xff:
+				self.pcnext[0] &= 0xff
+				self.pcnext[1] = (self.pcnext[1] + 1) & 0xff
 
 		def memreadw(self, addr): return self.env.memreadw(addr)
 		def memreadb(self, addr): return self.env.memreadb(addr)
@@ -181,8 +185,6 @@ class MicrocodeSimulation:
 				value = argsdict[mc.bus_a]
 				if mc.bus_a.startswith("u") and value < 0:
 					value += 0x10000
-				if mc.bus_a == "immj":
-					value -= 2
 				bus_a = (value >> 8*hilo) & 0xff
 			elif mc.bus_a.startswith("0x"):
 				bus_a = int(mc.bus_a[2:],16)
@@ -247,7 +249,7 @@ class MicrocodeSimulation:
 				self.regs[hilo][regnum-1] = value
 
 			if mc.pc_w:
-				self.pc[hilo] = bus_c
+				self.pcnext[hilo] = bus_c
 
 			if mc.mem_w:
 				addr = (self.mar[1] << 8) + self.mar[0] + hilo
