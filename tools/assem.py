@@ -88,12 +88,12 @@ class Assembler:
 		self.listingfile = None
 		self.printlisting = False
 
-		self.isaprops = isaprops.IsaProps()
 		self.encoding = Encoding()
+		self.isaprops = isaprops.IsaProps(self.encoding)
 
 		self.builtinfuncs = {
-			"%lo": lambda value: self.calc_lo_hi(value, self.isaprops.luishift)[0],
-			"%hi": lambda value: self.calc_lo_hi(value, self.isaprops.luishift)[1],
+			"%lo": lambda value: self.calc_lo_hi(value, self.isaprops.luimultiplier)[0],
+			"%hi": lambda value: self.calc_lo_hi(value, self.isaprops.luimultiplier)[1],
 			"%pcrel_lo": self.calc_pcrel_lo,
 			"%pcrel_hi": self.calc_pcrel_hi,
 		}
@@ -213,11 +213,11 @@ class Assembler:
 		assert False
 
 
-	def calc_lo_hi(self, value, shift):
+	def calc_lo_hi(self, value, multiplier):
 		value = value & 0xffff
-		lo = value & ((1 << shift) - 1)
-		if lo >= (1 << (shift - 1)):
-			lo -= 1 << shift
+		lo = value & (multiplier - 1)
+		if lo >= (multiplier >> 1):
+			lo -= multiplier
 		hi = value - lo
 		return lo, hi & 0xffff
 
@@ -229,13 +229,13 @@ class Assembler:
 			self.error(f"Incorrect usage of %pcrel_lo - no relocation tag found at address {value:X}")
 		else:
 			value = 0
-		value,hi = self.calc_lo_hi(value, self.isaprops.auipcshift)
+		value,hi = self.calc_lo_hi(value, self.isaprops.auipcmultiplier)
 		return value
 
 
 	def calc_pcrel_hi(self, value):
 		self.relocs[self.pos] = value - self.pos
-		lo,value = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
+		lo,value = self.calc_lo_hi(value - self.pos, self.isaprops.auipcmultiplier)
 		return value
 
 
@@ -684,7 +684,7 @@ class Assembler:
 			reg, value = value_args
 
 			if value < self.isaprops.limin or value > self.isaprops.limax:
-				lo,hi = self.calc_lo_hi(value, self.isaprops.luishift)
+				lo,hi = self.calc_lo_hi(value, self.isaprops.luimultiplier)
 
 				self.filtered_emit("lui", "ri", [reg, hi], comment, True)
 				if lo:
@@ -695,7 +695,7 @@ class Assembler:
 			assert argtypes == "ri"
 			reg, value = value_args
 
-			lo,hi = self.calc_lo_hi(value, self.isaprops.auipcshift)
+			lo,hi = self.calc_lo_hi(value, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
 			if lo:
@@ -717,7 +717,7 @@ class Assembler:
 			# e.g. "lw t0, somelabel"
 			reg, value = value_args
 
-			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
+			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
 			if lo:
@@ -729,7 +729,7 @@ class Assembler:
 			# e.g. "sw a0, somelabel, t0"
 			rs1, value, rs2 = value_args
 
-			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcshift)
+			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [rs2, hi], comment, True)
 			if lo:
@@ -747,7 +747,7 @@ class Assembler:
 				self.filtered_emit("jal", "ri", [reg, addr], comment, True)
 				return
 
-			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcshift)
+			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
 			if lo:
@@ -763,7 +763,7 @@ class Assembler:
 				self.filtered_emit("j", "i", [addr], comment, True)
 				return
 
-			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcshift)
+			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [rt, hi], comment, True)
 			if lo:

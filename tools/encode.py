@@ -3,8 +3,8 @@
 encodings = """
   0  0  0   0  0  0   0  0  0   0  0  0   0 0 0 0  	   1          	unimp
 
-  iF iD iC  iB iA i9  i8 iE 0   d  d  d   0 0 0 0  	2048 (8,3)    	lui	rd, imm8hz
-  iF iD iC  iB iA i9  i8 iE 1   d  d  d   0 0 0 0  	2048 (8,3)    	auipc	rd, imm8hz
+  iF iD iC  iB iA i9  i8 iE 0   d  d  d   0 0 0 0  	2048 (8,3)    	lui	rd, imm8h8z
+  iF iD iC  iB iA i9  i8 iE 1   d  d  d   0 0 0 0  	2048 (8,3)    	auipc	rd, imm8h8z
                                                     
   i7 i5 i4  i3 i2 i1  i0 i6 0   d  d  d   0 0 0 1  	2048 (8,3)    	addi8	rd, imm8
   i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 0   0 0 0 1  	 512 (9,)      	j	imm9ez
@@ -218,6 +218,8 @@ class Instr:
 		self.constraintarg2idx = None
 		self.constraintarg1idx = None
 
+		self.immediateconstraint = None
+
 		self.args = []
 		for arg in args:
 			if not arg:
@@ -234,6 +236,7 @@ class Instr:
 				self.constraintarg2idx = len(self.args)
 			else:
 				self.argtypes += "i"
+				self.immediateconstraint = arg
 
 			self.args.append(argdef)
 
@@ -343,7 +346,7 @@ class Encoding:
 			self.argdefs[name] = RegDef(name, *args)
 
 		for name, *args in [
-			( "imm8hz",  [ -1,-1,-1,-1,-1,-1,-1,-1,14, 8, 9,10,11,12,13,15 ], True,  True  ),
+			( "imm8h8z", [ -1,-1,-1,-1,-1,-1,-1,-1,14, 8, 9,10,11,12,13,15 ], True,  True  ),
 			( "imm8",    [ -1,-1,-1,-1,-1,-1,-1,-1, 6, 0, 1, 2, 3, 4, 5, 7 ], True,  False ),
 			( "imm9ez",  [ -1,-1,-1,-1,-1, 8, 7,-1, 6,-1, 1, 2, 3, 4, 5, 9 ], True,  True  ),
 			( "imm6ez",  [ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 2, 3, 4, 5, 6 ], True,  True  ),

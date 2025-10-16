@@ -1,22 +1,8 @@
 import re
 
+
 class IsaProps:
-	def __init__(self):
-		self.luishift = 8
-		self.auipcshift = 8
-		self.orimin = -16
-		self.orimax = 16
-		self.limin = -32
-		self.limax = 31
-		self.jalmin = -512
-		self.jalmax = 510
-		self.jmin = -512
-		self.jmax = 510
-		self.branchmin = -64
-		self.branchmax = 62
-
-		self.immed_constraints = {}
-
+	def __init__(self, encoding):
 		self.register_substitutions = {
 			"zero": "x0",
 		
@@ -30,51 +16,50 @@ class IsaProps:
 			"t0": "x8",
 		}
 
-		for instrs,constr in [
-			("lui", "imm8h8z"), # broken
-			("auipc", "imm8h8z"),
-			("j jal", "imm9ez"),
-			("lw lb lbu sb sw li", "imm6z"),
-			("addi8", "imm8"),
-			("addi andi ori xori", "imm5"),
-			("slti", "imm5z"),
-			("sltiu", "imm5u"),
-			("beq bne beqz bnez", "imm6ez"),
-			("blt bge bltu bgeu bltz bgez", "imm5ez"),
-			("jr jalr", "imm5ez"),
-			("slli srai", "imm4zu"),
-			("srli", "imm4u"),
-		]:
-			if constr == "2":
-				constr = (2,2,None,None)
+		self.immed_constraints = {}
+
+		for instrname, instr in encoding.instrs.items():
+			constr = instr.immediateconstraint
+			if constr is None:
+				continue
+
+			m = re.match(r"imm([0-9]+)(h([0-9]+))?(e)?(z)?(u)?$", constr)
+			assert m, f"Unmatchable consrtaint: {constr}"
+			bits, hgrp, shift, even, zero, uns = m.groups()
+
+			unsmax = 1 << int(bits)
+			if uns:
+				lo = 0
+				hi = unsmax
 			else:
-				m = re.match(r"imm([0-9]+)(h([0-9]+))?(e)?(z)?(u)?$", constr)
-				assert m
-				bits, hgrp, shift, even, zero, uns = m.groups()
+				lo = -(unsmax // 2)
+				hi = unsmax // 2
+			if zero:
+				hi -= 1
+			elif lo == 0:
+				lo += 1
 
-				unsmax = 1 << int(bits)
-				if uns:
-					lo = 0
-					hi = unsmax
-				else:
-					lo = -(unsmax // 2)
-					hi = unsmax // 2
-				if zero:
-					hi -= 1
-				elif lo == 0:
-					lo += 1
+			mult = 2 if even else None
+			if hgrp:
+				mult = 1 << int(shift)
+			if mult:
+				lo *= mult
+				hi *= mult
 
-				mult = 2 if even else None
-				if hgrp:
-					mult = 1 << int(shift)
-				if mult:
-					lo *= mult
-					hi *= mult
+			constr = (lo,hi,zero,mult)
 
-				constr = (lo,hi,zero,mult)
+			self.immed_constraints[instrname] = constr
 
-			for instr in instrs.split(" "):
-				self.immed_constraints[instr] = constr
+		self.branchmin = -64
+		self.branchmax = 62
+
+		self.luimultiplier = self.immed_constraints["lui"][3]
+		self.auipcmultiplier = self.immed_constraints["auipc"][3]
+
+		self.orimin, self.orimax = self.immed_constraints["ori"][:2]
+		self.limin, self.limax = self.immed_constraints["li"][:2]
+		self.jalmin, self.jalmax = self.immed_constraints["jal"][:2]
+		self.jmin, self.jmax = self.immed_constraints["j"][:2]
 
 
 	def regnum(self, text):

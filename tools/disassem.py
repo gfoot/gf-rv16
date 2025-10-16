@@ -1,8 +1,8 @@
 import isaprops
 from encode import Encoding
 
-props = isaprops.IsaProps()
 encoding = Encoding()
+props = isaprops.IsaProps(encoding)
 
 def format_arg(arg, typ):
 	if typ == "r":
