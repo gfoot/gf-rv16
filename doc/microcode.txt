@@ -214,7 +214,7 @@ NEG   rd, rs1          .	0		low	0xff	regs	rs1	xor	mar_w
                        .	2		high	0xff	regs	rs1	xor	mar_w			
                        .	3	1	high	mar	zero		adc		rd	alu	
                        .													
-MRET                   .	0		low	0x00	regs	mepc	ad0				pc_w		
+MRET  uimm             .	0		low	uimm	regs	mepc	ad0				pc_w		
                        .	1	1	high	0x00	regs	mepc	adc				pc_w		
                        .													
                        .													

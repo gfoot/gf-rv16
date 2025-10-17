@@ -7,6 +7,12 @@ from microcodesimulation import MicrocodeSimulation
 from encode import Encoding
 
 
+MMIO_BASE = 0xffff
+MMIO_PUTCHAR = MMIO_BASE
+MMIO_GETCHAR = MMIO_BASE
+MMIO_SIZE = 1
+
+
 LOGLEVEL_ERROR = 0
 LOGLEVEL_INFO = 1
 LOGLEVEL_TRACE = 2
@@ -54,6 +60,7 @@ class Sim:
 	def __init__(self, simulation, memory, entry, log=None, debuginfo=None):
 		self.state = simulation.State(self, cycletrace)
 		self.state.setpc(entry)
+		self.state.advancepc()
 
 		self.instructiondispatcher = simulation.InstructionDispatcher()
 
@@ -89,6 +96,10 @@ class Sim:
 
 	def memreadb(self, addr):
 		addr &= 0xffff
+
+		if addr >= MMIO_BASE and addr < MMIO_BASE + MMIO_SIZE:
+			return self.mmio_read(addr)
+
 		value = self.memory[addr // 2]
 		return 0xff & (value >> (8*(addr & 1)))
 
@@ -105,6 +116,10 @@ class Sim:
 		addr &= 0xffff
 		value &= 0xff
 
+		if addr >= MMIO_BASE and addr < MMIO_BASE + MMIO_SIZE:
+			self.mmio_write(addr, value)
+			return
+
 		oldvalue = self.memory[addr // 2]
 
 		if addr & 1:
@@ -113,6 +128,19 @@ class Sim:
 			value = value | oldvalue & 0xff00
 
 		self.memory[addr // 2] = value
+
+
+	def mmio_read(self, addr):
+		if addr == MMIO_PUTCHAR:
+			sys.stdout.flush()
+			c = sys.stdin.read(1)
+			return ord(c) & 0xff
+
+	def mmio_write(self, addr, value):
+		if addr == MMIO_PUTCHAR:
+			sys.stdout.write(chr(value))
+			sys.stdout.flush()
+
 
 	def cycletrace(self, text):
 		if cycletrace:
@@ -173,11 +201,11 @@ class Sim:
 					framesize = -value[2]
 
 			if framesize:
-				addr = self.memreadw(sp,True)
+				addr = self.memreadw(sp,True)-2
 				sp = (sp + framesize) & 0xffff
 			elif len(stackframes) == 1:
 				# The very first function might be a leaf function that doesn't need a stack frame
-				addr = self.state.ureg(1) # ra
+				addr = self.state.ureg(1)-2 # ra
 			else:
 				break
 

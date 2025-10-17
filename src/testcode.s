@@ -1,3 +1,4 @@
+.include "lib/vectors.s"
 .include "lib/str.s"
 .include "lib/io.s"
 
@@ -7,6 +8,9 @@ value2 = $15
 message:
 	.asciz "Hello world!\r\n","Goodbye "  , "this, ÞteÞst" 
 
+ecalltestmessage:
+	.asciz "ecall printing test\r\n"
+
 buffer:
 	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 buffersize = * - buffer
@@ -15,59 +19,50 @@ buffer2:
 	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 _start:
-	la		a0, message
-	li		x7, 1
-	ecall
-
 	la		s0, message
 1:
 	lb		a0, 0(s0)
 	beqz	a0, 1f
-	li		x7, 2
-	ecall
+	li		t0, 0
+	sb		a0, MMIO_PUTCHAR(t0)
 	
 	addi	s0, s0, 1
 	j		1b
 1:
 	li		a0, 10
-	li		x7, 2
-	ecall
+	sb		a0, MMIO_PUTCHAR(t0)
 
 	call	printimm
 	.asciz "Inline string-printing test"
 
-	j		1f
-
-	li		x7,0
-	ecall
-
-1:
+	li		t0, 0
 	li		a0, 10
-	li		x7, 2
-	ecall
-
-	la		a0, message
-	li		x7, 1
-	ecall
-
-	li		a0, 10
-	li		x7, 2
-	ecall
+	sb		a0, MMIO_PUTCHAR(t0)
+	sb		a0, MMIO_PUTCHAR(t0)
 
 	li		a0, 31856
 	call	printnum
 
+	li		t0, 0
 	li		a0, 10
-	li		x7, 2
-	ecall
+	sb		a0, MMIO_PUTCHAR(t0)
 
 	la		a0, message
 	call	strlen
 
 	call	printnum
 
+	li		t0, 0
 	li		a0, 10
-	li		x7, 2
+	sb		a0, MMIO_PUTCHAR(t0)
+	sb		a0, MMIO_PUTCHAR(t0)
+
+	la		a0, ecalltestmessage
+	li		a2, 1
+	ecall
+
+	li		a0, 'X'
+	li		a2, 2
 	ecall
 
 	li		x4, value1
@@ -75,21 +70,18 @@ _start:
 
 	mv		x2,x5
 
-	#ld		x6, $2001(x5)
-	#ld		x7, value1(sp)
-
-	blt		x5,x4,x4bigger
-	beq		x5,x4,done
-x5bigger:
+	blt		x5,x4,.x4bigger
+	beq		x5,x4,.done
+.x5bigger:
 	sub		x5,x5,x4
-	blt		x4,x5,x5bigger
-	blt		x5,x4,x4bigger
-	j done
-x4bigger:
+	blt		x4,x5,.x5bigger
+	blt		x5,x4,.x4bigger
+	j		.done
+.x4bigger:
 	sub		x4,x4,x5
-	blt		x5,x4,x4bigger
-	blt		x4,x5,x5bigger
-done:
+	blt		x5,x4,.x4bigger
+	blt		x4,x5,.x5bigger
+.done:
 
 
 	li		a0,		10

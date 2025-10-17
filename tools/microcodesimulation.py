@@ -97,9 +97,9 @@ class MicrocodeSimulation:
 
 		def dispatch(self, st, instr, argtypes, args):
 
-			if instr == "ecall":
-				st.ecall()
-				return True
+			#if instr == "ecall":
+			#	st.ecall()
+			#	return True
 
 			argtypes = argtypes.replace('o', 'i')
 
@@ -142,6 +142,7 @@ class MicrocodeSimulation:
 			self.pc = [ 0, 0 ]
 			self.pcnext = [ 0, 0 ]
 			self.mar = [ 0, 0 ]
+			self.mepc = [ 0, 0 ]
 
 		def setreg(self, num, value):
 			assert num >= 1 and num <= len(self.regs[0])
@@ -199,9 +200,12 @@ class MicrocodeSimulation:
 				addr = (self.mar[1] << 8) + self.mar[0] + hilo
 				bus_b = self.memreadb(addr)
 			elif mc.bus_b == "regs":
-				regnum = argsdict[mc.reg_r]
-				assert regnum >= 1 and regnum <= 8
-				bus_b = self.regs[hilo][regnum-1]
+				if mc.reg_r == "mepc":
+					bus_b = self.mepc[hilo]
+				else:
+					regnum = argsdict[mc.reg_r]
+					assert regnum >= 1 and regnum <= 8
+					bus_b = self.regs[hilo][regnum-1]
 			elif mc.bus_b == "pc":
 				bus_b = self.pc[hilo]
 			elif mc.bus_b == "marn":
@@ -229,11 +233,6 @@ class MicrocodeSimulation:
 				self.mar = [self.mar[1], bus_c]
 
 			if mc.reg_w:
-				if mc.reg_w == "ra":
-					regnum = 1
-				else:
-					regnum = argsdict[mc.reg_w]
-				assert regnum >= 1 and regnum <= 8
 
 				if mc.reg_win == "alu":
 					value = bus_c
@@ -246,7 +245,16 @@ class MicrocodeSimulation:
 				else:
 					assert False, f"Invalid reg_win: '{mc.reg_win}'"
 
-				self.regs[hilo][regnum-1] = value
+				if mc.reg_w == "mepc":
+					self.mepc[hilo] = value
+				else:
+					if mc.reg_w == "ra":
+						regnum = 1
+					else:
+						regnum = argsdict[mc.reg_w]
+
+					assert regnum >= 1 and regnum <= 8
+					self.regs[hilo][regnum-1] = value
 
 			if mc.pc_w:
 				self.pcnext[hilo] = bus_c

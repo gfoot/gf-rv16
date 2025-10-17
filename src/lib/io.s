@@ -1,36 +1,38 @@
+MMIO_PUTCHAR = $ffff
+
 
 exit:
-	li x7, 0
+	li		a2, 0
 	ecall
 
 puts:
-	li x7, 1
+	li		a2, 1
 	ecall
 	ret
 
 putchar:
-	li x7, 2
-	ecall
+	li		t0, 0
+	sb		a0, MMIO_PUTCHAR(t0)
 	ret
 	
 gets:
-	li x7, 3
+	li		a2, 3
 	ecall
 	ret
 
 
 
 printimm:
+	li		t0, 0
+1:
 	addi	ra, ra, 2
 	lb		a0, -2(ra)
 	beqz	a0, 1f
-	li		x7, 2
-	ecall
+	sb		a0, MMIO_PUTCHAR(t0)
 	lb		a0, -1(ra)
 	beqz	a0, 1f
-	li		x7, 2
-	ecall
-	j		printimm
+	sb		a0, MMIO_PUTCHAR(t0)
+	j		1b
 1:
 	jr		ra
 
@@ -53,8 +55,8 @@ printnum:
 	addi	a0, a0, 1
 	bge		a1, a2, 2b
 1:
-	li		x7, 2
-	ecall
+	li		a2, 0
+	sb		a0, MMIO_PUTCHAR(a2)
 
 	addi	t0, t0, -2
 	lh		a2, (t0)

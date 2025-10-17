@@ -580,29 +580,30 @@ visualiseheap:
 
 visualiseheap_printchunk:
 	# This is not a normal function - it modifies s1 and preserves t0 for the caller
-	addi	sp, sp, -6
+	addi	sp, sp, -10
 	sw		ra, (sp)
 	sw		t0, 2(sp)
 	sw		a2, 4(sp)
+	sw		a1, 8(sp)
 	
 2:
 	li		t0, 1023
 	and		t0, t0, s1
 	bnez	t0, 1f
 
-	mv		t0, a0
+	sw		a0, 6(sp)
 	li		a0, 13
 	call	putchar
 	li		a0, 10
 	call	putchar
-	mv		a0, t0
+	lw		a0, 6(sp)
 
 1:
 	addi	s1, s1, 8
 	beq		s1, s0, 1f
 
 	call	putchar
-	mv		a0, a1
+	lw		a0, 8(sp)
 	j		2b
 
 1:	# Last character
@@ -611,6 +612,6 @@ visualiseheap_printchunk:
 
 	lw		t0, 2(sp)
 	lw		ra, (sp)
-	addi	sp, sp, 6
+	addi	sp, sp, 10
 	ret
 

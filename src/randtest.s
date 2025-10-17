@@ -1,7 +1,9 @@
+.include "lib/vectors.s"
 .include "lib/random.s"
 .include "lib/io.s"
 
 _start:
+	li		sp, -4
 	li		s0, 10000
 
 1:
@@ -17,23 +19,27 @@ _start:
 
 
 printbin16:
-	addi	sp, sp, -2
+	addi	sp, sp, -6
 	sw		ra, (sp)
+	sw		s0, 2(sp)
+	sw		s1, 4(sp)
 
-	li		a1, 16
-	mv		t0, a0
+	li		s1, 16
+	mv		s0, a0
 
 1:
-	sltz	a0, t0
+	sltz	a0, s0
 	addi	a0, a0, 48
 	call	putchar
 
-	slli	t0, t0, 1
+	slli	s0, s0, 1
 	
-	addi	a1, a1, -1
-	bnez	a1, 1b
+	addi	s1, s1, -1
+	bnez	s1, 1b
 
 	lw		ra, (sp)
-	addi	sp, sp, 2
+	lw		s0, 2(sp)
+	lw		s1, 4(sp)
+	addi	sp, sp, 6
 	ret
 

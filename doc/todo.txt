@@ -1,7 +1,8 @@
 Some things to do at some point
 
 Priorities:
- * MMIO
+ * Non-blocking I/O in simulator
+ * More MMIOs
  * IRQs
  * Write more code
 
@@ -22,18 +23,11 @@ ISA design
 
 System software
 
- * Make the code use MMIO instead of ecalls for I/O
-	ecalls would be fine if an OS handled them but it'd still need to redirect to MMIO
-	The problem right now is the simulator is handling the ecall
-
  * On-device ebreak/callstack handling
 	Again the problem is the simulator is doing all the work, which won't work with hardware
 
 
 Assembler
-
- * Make isaprops.py derive the ISA capabilities from encode.py
-	Currently it hardcodes its own ideas about immediate widths for various instructions
 
  * Should listing files show literal interpretation of encoded instructions, or logical purpose?
 	i.e. slli x8,x8,16 or li x8,0?  ori x1,x2,12 or li x1,12?  bne x5,x5,6 or bnez x5,6?
@@ -52,9 +46,11 @@ Assembler
 
 Simulator/debugging
 
- * MMIO support
-	Need at least: write character, read character, check if character is available to read
-	Could also provide: hardware timer(s)
+ * Non-blocking I/O
+
+ * More MMIO support
+	check if character is available to read
+	hardware timer(s)
 
  * IRQ generation and correct IRQ handler simulation
 	Need: IRQ on character available

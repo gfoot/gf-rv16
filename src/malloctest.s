@@ -1,3 +1,4 @@
+.include "lib/vectors.s"
 .include "lib/str.s"
 .include "lib/mem.s"
 .include "lib/io.s"
