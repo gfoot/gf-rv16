@@ -46,7 +46,8 @@ class HighLevelSimulation:
 		def sb_rri (st, rs1, rs2, imm): st.memwriteb(imm + st.sreg(rs2), st.sreg(rs1))
 		def sw_rri (st, rs1, rs2, imm): st.memwritew(imm + st.sreg(rs2), st.sreg(rs1))
 
-		def ecall_(st): st.ecall()
+		def ecall_(st): st.mepc = st.getpc() ; st.setpc(3)
+		def mret_i(st, imm): st.setpc(st.mepc + imm)
 
 		def li_ri(st, rd, imm): st.setreg(rd, imm)
 		def beqz_ri(st, rs1, imm): st.setpc(st.getpc() + imm, st.sreg(rs1) == 0)
@@ -71,6 +72,7 @@ class HighLevelSimulation:
 			self.regs = [0] * 9
 			self.pc = 0
 			self.pcnext = 0
+			self.mepc = 0
 
 		def setreg(self, num, value):
 			assert num > 0 and num < len(self.regs)
@@ -99,6 +101,5 @@ class HighLevelSimulation:
 		def memwritew(self, addr, value): self.env.memwritew(addr, value)
 		def memwriteb(self, addr, value): self.env.memwriteb(addr, value)
 		def unimp(self): self.env.unimp()
-		def ecall(self): self.env.ecall()
 
 
