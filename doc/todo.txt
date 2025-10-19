@@ -1,8 +1,6 @@
 Some things to do at some point
 
 Priorities:
- * Non-blocking I/O in simulator
- * More MMIOs
  * IRQs
  * Write more code
 
@@ -46,10 +44,7 @@ Assembler
 
 Simulator/debugging
 
- * Non-blocking I/O
-
  * More MMIO support
-	check if character is available to read
 	hardware timer(s)
 
  * IRQ generation and correct IRQ handler simulation

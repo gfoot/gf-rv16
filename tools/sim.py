@@ -1,16 +1,20 @@
 import assem
+import fcntl
 import os
 import sys
+import termios
+import tty
 
 from highlevelsimulation import HighLevelSimulation
 from microcodesimulation import MicrocodeSimulation
 from encode import Encoding
 
 
-MMIO_BASE = 0xffff
+MMIO_BASE = 0xfffe
 MMIO_PUTCHAR = MMIO_BASE
 MMIO_GETCHAR = MMIO_BASE
-MMIO_SIZE = 1
+MMIO_INPUTSTATE = MMIO_BASE+1
+MMIO_SIZE = 2
 
 
 LOGLEVEL_ERROR = 0
@@ -73,13 +77,6 @@ class Sim:
 
 		self.stop = False
 
-		self.ecall_dispatch = [
-			self.ecall_exit,
-			self.ecall_print,
-			self.ecall_putchar,
-			self.ecall_gets,
-		]
-
 
 	def unimp(self):
 		self.exception(2, self.pc, f"Illegal instruction (unimp)")
@@ -131,12 +128,20 @@ class Sim:
 
 
 	def mmio_read(self, addr):
-		if addr == MMIO_PUTCHAR:
-			sys.stdout.flush()
-			c = sys.stdin.read(1)
-			return ord(c) & 0xff
+
+		if addr == MMIO_GETCHAR:
+			data = sys.stdin.buffer.read(1)
+			if len(data) == 0:
+				return 0
+			assert len(data) == 1
+			return data[0] & 0xff
+
+		elif addr == MMIO_INPUTSTATE:
+			return 1 if sys.stdin.buffer.peek(1) else 0
+
 
 	def mmio_write(self, addr, value):
+
 		if addr == MMIO_PUTCHAR:
 			sys.stdout.write(chr(value))
 			sys.stdout.flush()
@@ -257,45 +262,6 @@ class Sim:
 		sys.exit(1)
 
 
-	def ecall(self):
-		func = self.state.sreg(7)
-
-		if func < 0 or func >= len(self.ecall_dispatch):
-			self.exception(50, self.state.getpc(), f"Invalid ecall number {func}")
-
-		self.ecall_dispatch[func]()
-
-
-	def ecall_print(self):
-		i = self.state.ureg(5)
-		c = 1
-		s = ""
-		while c:
-			c = self.memreadb(i)
-			if c:
-				s += chr(c)
-			i += 1
-		sys.stdout.write(s)
-
-	def ecall_putchar(self):
-		i = self.state.ureg(5)
-		sys.stdout.write(chr(i & 0xff))
-
-	def ecall_exit(self):
-		self.stop = True
-
-	def ecall_gets(self):
-		p = self.state.ureg(5)
-		size = self.state.ureg(6)
-		text = input()
-		text = text[:size-1]
-		for c in text:
-			self.memwriteb(p,ord(c))
-			p += 1
-		self.memwriteb(p,0)
-		self.setreg(6, p - self.ureg(5))
-
-
 if __name__ == "__main__":
 
 	filename = None
@@ -348,10 +314,22 @@ if __name__ == "__main__":
 	else:
 		simulation = MicrocodeSimulation
 
-	sim = Sim(simulation, mem, entry, log, debuginfo)
+	stdin = sys.stdin.fileno()
+	tattr = termios.tcgetattr(stdin)
+	orig_fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
+
+	try:
+		tty.setcbreak(stdin, termios.TCSANOW)
+		fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl | os.O_NONBLOCK)
+
+		sim = Sim(simulation, mem, entry, log, debuginfo);
 		
-	while sim.step():
-		pass
+		while sim.step():
+			pass
+
+	finally:
+		termios.tcsetattr(stdin, termios.TCSANOW, tattr)
+		fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl)
 
 	if trace:
 		tracefile.close()

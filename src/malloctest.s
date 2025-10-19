@@ -5,7 +5,7 @@
 
 _start:
 
-	li		sp, 0
+	li		sp, -8
 
 	li		a0, $8000
 	li		a1, _top

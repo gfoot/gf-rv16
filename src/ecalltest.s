@@ -1,4 +1,6 @@
-MMIO_PUTCHAR = $ffff
+# Test of ecall functionality on its own, without the operating system
+
+MMIO_PUTCHAR = $fffe
 
 _start:
 resetvector:

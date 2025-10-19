@@ -1,6 +1,3 @@
-MMIO_PUTCHAR = $ffff
-
-
 exit:
 	li		a2, 0
 	ecall
