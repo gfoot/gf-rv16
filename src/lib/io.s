@@ -4,15 +4,59 @@ exit:
 
 getchar = os_getchar
 
-gets:
-	addi	sp, sp, -2
-	sw		ra, (sp)
 
-	li		a2, 3
-	ecall
+gets:
+	addi	sp, sp, -6
+	sw		ra, (sp)
+	sw		s0, 2(sp)
+	sw		s1, 4(sp)
+
+	mv		s0, a0
+	mv		s1, a0
+
+.again:
+	call	getchar
+
+	addi	a0, a0, -127
+	beqz	a0, .backspace
+	bgez	a0, .again
+
+	addi	a0, a0, 117
+	beqz	a0, .enter
+
+	addi	a0, a0, -22
+	bltz	a0, .again
+
+	addi	a0, a0, 32
+
+	sb		a0, (s0)
+	addi	s0, s0, 1
+
+	call	putchar
+	j		.again
+
+.backspace:
+	beq		s0, s1, .again
+	li		a0, 8
+	call	putchar
+	li		a0, 32
+	call	putchar
+	li		a0, 8
+	call	putchar
+	addi	s0, s0, -1
+	j		.again
+
+.enter:
+	sb		a0, (s0)
+	li		a0, 10
+	call	putchar
+
+	mv		a0, s1
 
 	lw		ra, (sp)
-	addi	sp, sp, 2
+	lw		s0, 2(sp)
+	lw		s1, 4(sp)
+	addi	sp, sp, 6
 	ret
 
 
@@ -30,12 +74,12 @@ puts:
 	sb		a1, MMIO_PUTCHAR(t0)
 	addi	a0, a0, 1
 	j		1b
-
+1:
 	ret
 
 
 printimm:
-	addi	a0, ra, 2
+	mv		a0, ra
 	call	puts
 	jr		a0, 2
 
