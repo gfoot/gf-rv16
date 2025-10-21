@@ -211,9 +211,10 @@ class Sim:
 			
 			typ,types,value = self.encoding.decode(self.memory[symaddr // 2])
 
-			if typ == "addi" and types == "rri":
-				if value[0] == 2 and value[1] == 2 and value[2] < 0 and value[2] > -128:
-					framesize = -value[2]
+			if typ == "addi8" and types == "ri":
+				regnum,imm = value
+				if regnum == 2 and imm > 65536-128:
+					framesize = 65536-imm
 
 			if framesize:
 				addr = self.memreadw(sp,True)-2
