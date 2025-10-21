@@ -1,0 +1,4 @@
+MMIO_PUTCHAR = $fffe
+MMIO_GETCHAR = $fffe
+MMIO_INPUTSTATE = $ffff
+
