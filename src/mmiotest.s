@@ -1,15 +1,13 @@
 # Test of MMIO functionality alone, without the operating system
 
+.include "lib/defs.s"
+
 resetvector:
 	j	_start
 ecallvector:
 	ebreak
 irqvector:
 	ebreak
-
-MMIO_PUTCHAR = $fffe
-MMIO_GETCHAR = $fffe
-MMIO_INPUTSTATE = $ffff
 
 _start:
 	li	t0, 0
