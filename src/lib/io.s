@@ -1,23 +1,9 @@
 exit:
-	li		a2, 0
-	ecall
+	ebreak
 
-puts:
-	addi	sp, sp, -2
-	sw		ra, (sp)
 
-	li		a2, 1
-	ecall
+getchar = os_getchar
 
-	lw		ra, (sp)
-	addi	sp, sp, 2
-	ret
-
-putchar:
-	li		t0, 0
-	sb		a0, MMIO_PUTCHAR(t0)
-	ret
-	
 gets:
 	addi	sp, sp, -2
 	sw		ra, (sp)
@@ -30,20 +16,28 @@ gets:
 	ret
 
 
+putchar:
+	li		t0, 0
+	sb		a0, MMIO_PUTCHAR(t0)
+	ret
+	
 
-printimm:
+puts:
 	li		t0, 0
 1:
-	addi	ra, ra, 2
-	lb		a0, -2(ra)
-	beqz	a0, 1f
-	sb		a0, MMIO_PUTCHAR(t0)
-	lb		a0, -1(ra)
-	beqz	a0, 1f
-	sb		a0, MMIO_PUTCHAR(t0)
+	lb		a1, (a0)
+	beqz	a1, 1f
+	sb		a1, MMIO_PUTCHAR(t0)
+	addi	a0, a0, 1
 	j		1b
-1:
-	jr		ra
+
+	ret
+
+
+printimm:
+	addi	a0, ra, 2
+	call	puts
+	jr		a0, 2
 
 
 printnum:
