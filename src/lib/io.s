@@ -81,35 +81,39 @@ printhexnybble:
 	andi	a0, a0, 15
 	addi	a0, a0, -10
 	bltz	a0, 1f
-	addi	a0, a0, 65
-	tail	putchar
+	addi	a0, a0, 7
 1:
 	addi	a0, a0, 58
-	tail	putchar
+	li		t0, 0
+	sb		a0, MMIO_PUTCHAR(t0)
+	ret
 
 
 printhex16:
 	addi	sp, sp, -4
-	sw		a0, (sp)
-	sw		ra, 2(sp)
+	sw		a0, 2(sp)
+	sw		ra, (sp)
 	srli	a0, a0, 12
 	call	printhexnybble
-	lw		a0, (sp)
+	lw		a0, 2(sp)
 	srli	a0, a0, 8
 	call	printhexnybble
-	lw		a0, (sp)
+	lw		a0, 2(sp)
 1:
 	srli	a0, a0, 4
 	call	printhexnybble
-	lw		a0, (sp)
+	lw		a0, 2(sp)
 	call	printhexnybble
-	lw		a0, (sp)
-	lw		ra, 2(sp)
+	lw		a0, 2(sp)
+	lw		ra, (sp)
 	addi	sp, sp, 4
 	ret
 
+
 printhex8:
 	addi	sp, sp, -4
-	sw		s0, (sp)
+	sw		s0, 2(sp)
+	sw		ra, (sp)
 	tail	1b
+
 
