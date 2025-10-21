@@ -12,7 +12,7 @@ from encode import Encoding
 
 DEBUG = 0
 
-re_assignment = re.compile(r"(\*|[A-Za-z_0-9]+)\s*=(.*)")
+re_assignment = re.compile(r"(\*|[.A-Za-z_0-9]+)\s*=(.*)")
 re_labeldef = re.compile(r"([.A-Za-z_0-9]+)\s*:(.*)")
 re_label = re.compile(r"([.A-Za-z_0-9]+)$")
 re_relativelabel = re.compile(r"(\d+[bf])$")
