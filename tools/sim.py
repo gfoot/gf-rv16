@@ -61,7 +61,7 @@ class Sim:
 			return None,None
 
 
-	def __init__(self, simulation, memory, entry, log=None, debuginfo=None):
+	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None):
 		self.state = simulation.State(self, cycletrace)
 		self.state.setpc(entry)
 		self.state.advancepc()
@@ -76,6 +76,8 @@ class Sim:
 		self.debuginfo = Sim.DebugInfo(debuginfo)
 
 		self.stop = False
+
+		self.pendinginput = None
 
 
 	def unimp(self):
@@ -130,14 +132,12 @@ class Sim:
 	def mmio_read(self, addr):
 
 		if addr == MMIO_GETCHAR:
-			data = sys.stdin.buffer.read(1)
-			if len(data) == 0:
-				return 0
-			assert len(data) == 1
-			return data[0] & 0xff
+			value = self.pendinginput or 0
+			self.pendinginput = None
+			return value
 
 		elif addr == MMIO_INPUTSTATE:
-			return 1 if sys.stdin.buffer.peek(1) else 0
+			return 1 if self.pendinginput is not None else 0
 
 
 	def mmio_write(self, addr, value):
@@ -161,8 +161,16 @@ class Sim:
 			return f"${arg:04x}"
 
 	def step(self):
-		value = self.memory[self.state.getpc()//2]
-		instr,argtypes,args = self.encoding.decode(value)
+
+		# TODO: encapsulate this I/O interrupt stuff better
+		if data := sys.stdin.buffer.read(1):
+			self.pendinginput = data[0] & 0xff
+
+		if self.state.mstatus_mie and self.pendinginput is not None:
+			instr,argtypes,args = "*irq", "", []
+		else:
+			value = self.memory[self.state.getpc()//2]
+			instr,argtypes,args = self.encoding.decode(value)
 
 
 		argsfmt = ', '.join([f"{self.format_arg(arg,typ)}" for arg,typ in zip(args,argtypes)])
@@ -322,7 +330,7 @@ if __name__ == "__main__":
 		tty.setcbreak(stdin, termios.TCSANOW)
 		fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl | os.O_NONBLOCK)
 
-		sim = Sim(simulation, mem, entry, log, debuginfo);
+		sim = Sim(simulation, mem, log=log, debuginfo=debuginfo);
 		
 		while sim.step():
 			pass

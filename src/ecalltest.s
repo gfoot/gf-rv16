@@ -14,18 +14,12 @@ irqvector:
 
 ecallhandler:
 	li		t0, 0
-	li		a0, 'e'
 	sb		a0, MMIO_PUTCHAR(t0)
-	li		a0, 'c'
-	sb		a0, MMIO_PUTCHAR(t0)
-	li		a0, 'a'
-	sb		a0, MMIO_PUTCHAR(t0)
-	li		a0, 'l'
-	sb		a0, MMIO_PUTCHAR(t0)
-	sb		a0, MMIO_PUTCHAR(t0)
-	li		a0, 10
-	sb		a0, MMIO_PUTCHAR(t0)
-	ebreak
+
+	csrr	t0, mepc
+	addi	t0, t0, 2
+	csrrw	zero, mepc, t0
+	mret
 
 entry:
 	li		t0, 0
@@ -42,5 +36,18 @@ entry:
 	li		a0, 10
 	sb		a0, MMIO_PUTCHAR(t0)
 
+	li		a0, 'e'
 	ecall
+	li		a0, 'c'
+	ecall
+	li		a0, 'a'
+	ecall
+	li		a0, 'l'
+	ecall
+	li		a0, 'l'
+	ecall
+	li		a0, 10
+	ecall
+
+	ebreak
 

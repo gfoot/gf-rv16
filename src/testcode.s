@@ -19,6 +19,8 @@ buffer2:
 	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 _start:
+	lui		sp, $ff00
+
 	la		s0, message
 1:
 	lb		a0, 0(s0)
@@ -67,8 +69,6 @@ _start:
 
 	li		x4, value1
 	li		x5, value2
-
-	mv		x2,x5
 
 	blt		x5,x4,.x4bigger
 	beq		x5,x4,.done

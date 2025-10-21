@@ -4,10 +4,15 @@
 
 _start:
 	li		sp, -4
-	li		s0, 10000
 
+	li		s0, 16
 1:
-	li		a0, 16
+	call	random
+	addi	s0, s0, -1
+	bnez	s0, 1b
+
+	li		s0, 10000
+1:
 	call	random
 	call	printbin16
 

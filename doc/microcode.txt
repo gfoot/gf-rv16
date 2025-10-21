@@ -215,11 +215,38 @@ NEG   rd, rs1          .	0		low	0xff	regs	rs1	xor	mar_w
                        .	3	1	high	mar	zero		adc		rd	alu	
                        .													
 MRET  uimm             .	0		low	uimm	regs	mepc	ad0				pc_w		
-                       .	1	1	high	0x00	regs	mepc	adc				pc_w		
+                       .	1		high	0x00	regs	mepc	adc				pc_w		
+                       .	2		low	0x00	regs	mstmpie	ad0		mstmie	alu
+                       .	3	1	low	0x01	zero		ad0		mstmpie	alu
                        .													
+ECALL                  .	0		low	0x02	zero		ad0		mepc	pc	pc_w		
+                       .	1		high	0x00	zero		adc		mepc	pc	pc_w		
+                       .	2		low	0x00	regs	mstmie	ad0		mstmpie	alu
+                       .	3	1	low	0x00	zero		ad0		mstmie	alu
                        .													
-ECALL                  .	0		low	0x03	zero		ad0		mepc	pc	pc_w		
-                       .	1	1	high	0x00	zero		adc		mepc	pc	pc_w		
+*IRQ                   .	0		low	0x04	zero		ad0		mepc	pc	pc_w		
+                       .	1		high	0x00	zero		adc		mepc	pc	pc_w		
+                       .	2		low	0x00	regs	mstmie	ad0		mstmpie	alu
+                       .	3	1	low	0x00	zero		ad0		mstmie	alu
                        .													
-(IRQ)                  .	0		low	0x05	zero		ad0		mepc	pc	pc_w		
-                       .	1	1	high	0x00	zero		adc		mepc	pc	pc_w		
+SETMIE rd              .	0		low	0x00	regs	mstatus	ad0		rd	alu
+                       .	1		high	0x00	zero		ad0		rd	zero
+                       .	2	1	low	0x01	zero		ad0		mstmie	alu
+                       .													
+CLRMIE rd              .	0		low	0x00	regs	mstatus	ad0		rd	alu
+                       .	1		high	0x00	zero		ad0		rd	zero
+                       .	2	1	low	0x00	zero		ad0		mstmie	zero
+                       .													
+RDMEPC rd              .	0		low	0x00	regs	mepc	ad0		rd	alu
+                       .	1	1	high	0x00	regs	mepc	ad0		rd	alu
+                       .													
+WRMEPC rs1             .	0		low	0x00	regs	rs1	ad0		mepc	alu
+                       .	1	1	high	0x00	regs	rs1	ad0		mepc	alu
+                       .													
+CSRRSI rd, csr, imm    .	0		low	0x00	regs	csr	or		rd	alu
+                       .	1		high	0x00	zero		or		rd	zero
+                       .	2	1	low	imm	regs	csr	or		csr	alu
+                       .													
+CSRRCI rd, csr, imm    .	0		low	0x00	regs	csr	or		rd	alu
+                       .	1		high	0x00	zero		or		rd	zero
+                       .	2	1	low	imm	regs	csr	and		csr	alu

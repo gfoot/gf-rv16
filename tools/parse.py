@@ -27,12 +27,14 @@ TOK_PARENOPEN = '('
 TOK_PARENCLOSE = ')'
 TOK_FUNCCALL = 'func('
 TOK_REGISTER = 'reg'
+TOK_CSR = 'csr'
 TOK_MEMOFFSET = '(m'
 
 re_numbernosign = re.compile(r"(\$[0-9A-Fa-f]+|[0-9]+)(.*)")
 re_identifier = re.compile(r"(\*|[.A-Za-z_][.A-Za-z_0-9]*|[0-9]+[bf])(.*)")
 re_funccall = re.compile(r'(%[a-zA-Z_][a-zA-Z0-9_]*)\((.*)')
 re_register = re.compile(r"([xsta][0-9]|[xsta][0-9][0-9]|zero|sp|ra)($|[^.A-Za-z_0-9].*)")
+re_csr = re.compile(r"(mepc|mstatus)($|[^.A-Za-z_0-9].*)")
 re_character = re.compile(r"'(([^\\])|\\(.))'(.*)")
 
 binaryoperators = {
@@ -104,6 +106,11 @@ def gettoken(line, context):
 		if m:
 			value,line = m.groups()
 			return TOK_REGISTER, value, line.strip()
+
+		m = re_csr.match(line)
+		if m:
+			value,line = m.groups()
+			return TOK_CSR, value, line.strip()
 
 		m = re_identifier.match(line)
 		if m:
@@ -186,12 +193,12 @@ def parseargs(line, identifiervaluelookup, builtinfuncs):
 
 		# Check we don't have some weird contradiction with operators and types at the top of the stack
 		if len(stack) >= 2 and stack[-2][0] == TOK_UNARYOPERATOR:
-			if stack[-1][0] == TOK_REGISTER:
+			if stack[-1][0] in { TOK_REGISTER, TOK_CSR }:
 				raise AsmError(f"Unary operator unsupported for '{stack[-1][0]}'-type argument")
 
 		# Similar for binary operators
 		if len(stack) >= 2 and stack[-2][0] == TOK_BINARYOPERATOR:
-			if stack[-1][0] == TOK_REGISTER:
+			if stack[-1][0] in { TOK_REGISTER, TOK_CSR }:
 				raise AsmError(f"Binary operator unsupported for '{stack[-1][0]}'-type argument")
 
 
@@ -260,7 +267,7 @@ def parseargs(line, identifiervaluelookup, builtinfuncs):
 				print(stack)
 
 			assert len(stack) == 1
-			assert stack[-1][0] == TOK_NUMBER or stack[-1][0] == TOK_REGISTER
+			assert stack[-1][0] in { TOK_NUMBER, TOK_REGISTER, TOK_CSR }
 			args.append(stack.pop())
 
 			if debug:
@@ -273,7 +280,7 @@ def parseargs(line, identifiervaluelookup, builtinfuncs):
 			else:
 				break
 
-		elif toktype == TOK_REGISTER:
+		elif toktype == TOK_REGISTER or toktype == TOK_CSR:
 			stack.append((toktype, content))
 			context = CONTEXT_POST
 			continue
@@ -291,7 +298,7 @@ def parseargs(line, identifiervaluelookup, builtinfuncs):
 		if toktype == TOK_BINARYOPERATOR:
 			contractstack(stack, binaryprecedence[content])
 
-			if stack[-1][0] == TOK_REGISTER:
+			if stack[-1][0] in { TOK_REGISTER, TOK_CSR }:
 				raise AsmError(f"Binary operator unsupported for '{stack[-1][0]}'-type argument")
 
 		if toktype == TOK_PARENOPEN or toktype == TOK_FUNCCALL or toktype == TOK_MEMOFFSET:
@@ -345,6 +352,9 @@ if __name__ == "__main__":
 		"a1, 12(sp)",
 		"a1, ofs_stack3(sp)",
 		"a2, ofs_field2(a0)",
+		"mstatus",
+		"mepc",
+		"ra, mstatus, 8",
 	#	"a,,b",
 	#	" ( a , b ) , c ",
 	#	" a, ( b",

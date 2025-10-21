@@ -6,13 +6,17 @@ props = isaprops.IsaProps(encoding)
 
 def format_arg(arg, typ):
 	if typ == "r":
-		return f"x{arg}"
+		return props.regname(arg)
+	if typ == "c":
+		return props.csrname(arg)
 	elif arg >= -128 and arg <= 128:
 		return f"{arg}"
 	elif arg >= 0:
+		arg &= 0xffff
 		return f"${arg:04X}"
 	else:
-		return f"-${abs(arg):04X}"
+		arg = (-arg) & 0xffff
+		return f"-${arg:04X}"
 
 
 def format_args(args, argtypes):
@@ -79,6 +83,26 @@ def disassemble(mem):
 			instr = "addi"
 			argtypes = "rri"
 			args = args[:1] + args
+
+		if instr == "setmie" and argtypes == "r":
+			instr = "csrrsi"
+			argtypes = "rci"
+			args = [args[0], 1, 8]
+
+		if instr == "clrmie" and argtypes == "r":
+			instr = "csrrci"
+			argtypes = "rci"
+			args = [args[0], 1, 8]
+
+		if instr == "rdmepc" and argtypes == "r":
+			instr = "csrr"
+			argtypes = "rc"
+			args = [args[0], 0]
+
+		if instr == "wrmepc" and argtypes == "r":
+			instr = "csrw"
+			argtypes = "cr"
+			args = [0, args[0]]
 
 		printline(i, value, f"{instr:<6}  {format_args(args, argtypes)}")
 

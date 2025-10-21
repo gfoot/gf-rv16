@@ -16,6 +16,9 @@ class IsaProps:
 			"t0": "x8",
 		}
 
+		self.regnames = [ "zero", "ra", "sp", "s0", "s1", "a0", "a1", "a2", "t0" ]
+		self.csrnames = [ "mepc", "mstatus" ]
+
 		self.immed_constraints = {}
 
 		for instrname, instr in encoding.instrs.items():
@@ -71,6 +74,15 @@ class IsaProps:
 			return int(text[1:])
 		except ValueError:
 			return None
+
+	def regname(self, value):
+		return self.regnames[value]
+
+	def csrnum(self, text):
+		return self.csrnames.index(text)
+
+	def csrname(self, value):
+		return self.csrnames[value]
 
 
 	def checkimmed(self, immed, instr):

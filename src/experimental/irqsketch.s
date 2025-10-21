@@ -428,3 +428,44 @@ aftervia:
 #
 # It may also be possible for the VIA and ACIA MMIO registers to be accessed 
 # relative to a common base, e.g. by using negative offsets for one of them
+
+
+
+# Another option for system calls is to just use jumps and not bother with
+# ecall.  Since the system doesn't have privilege modes, and never will
+# (will it?), ecall is just a way to call an operating system routine.  It
+# disables interrupts at the start of the call, but probably just enables
+# them again really soon afterwards.
+#
+# It is convenient not to have to create an absolute address to call
+# through, as that normally requires a register.  We do not have x0 to use
+# as a base, either.  However ecall still requires the caller to select a
+# function using a register, so we can leverage that to also perform the
+# actual call:
+
+	li		a0, SYSCALL_PUTCHAR
+	jalr	syscall_entry - SYSCALL_PUTCHAR(a0)     # call to syscall_entry
+
+# The range of offsets supported by jalr is a constraint here - currently
+# it's an imm5ez, i.e. -32..30 even numbers only.  li's constant is imm6z so
+# it spans numbers from -32 to 31, odd and even.  So if the entry point was
+# at $0020 (32) then there's room to support 16 syscall numbers, from 0 to
+# 30 in even steps.  If more are required then that could be done through
+# additional entry points nearby, using the same underlying even numbers but
+# with a different entry point.  The entry points themselves could use the
+# value in the register to further indirect through a lookup table.
+#
+# It's also simple for a macro to wrap up this combination.
+#
+# There's also this idea:
+
+	li		ra, SYSCALL_PUTCHAR
+	lw		ra, syscall_table(ra)
+	jalr	(ra)
+
+# This avoids double-jumping as it can jump straight to the correct entry
+# point for the requested syscall.  It doesn't pass a syscall number through
+# to the called routine, which frees up a register for parameter passing -
+# though if the syscall number was useful anyway it could still be passed in
+# a0 instead of being loaded into ra.
+

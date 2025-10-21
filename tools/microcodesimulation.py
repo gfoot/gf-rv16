@@ -143,6 +143,8 @@ class MicrocodeSimulation:
 			self.pcnext = [ 0, 0 ]
 			self.mar = [ 0, 0 ]
 			self.mepc = [ 0, 0 ]
+			self.mstatus_mie = 0
+			self.mstatus_mpie = 0
 
 		def setreg(self, num, value):
 			assert num >= 1 and num <= len(self.regs[0])
@@ -202,6 +204,12 @@ class MicrocodeSimulation:
 			elif mc.bus_b == "regs":
 				if mc.reg_r == "mepc":
 					bus_b = self.mepc[hilo]
+				elif mc.reg_r == "mstmie":
+					bus_b = self.mstatus_mie
+				elif mc.reg_r == "mstmpie":
+					bus_b = self.mstatus_mpie
+				elif mc.reg_r == "mstatus":
+					bus_b = (self.mstatus_mpie << 7) | (self.mstatus_mie << 3)
 				else:
 					regnum = argsdict[mc.reg_r]
 					assert regnum >= 1 and regnum <= 8
@@ -247,6 +255,10 @@ class MicrocodeSimulation:
 
 				if mc.reg_w == "mepc":
 					self.mepc[hilo] = value
+				elif mc.reg_w == "mstmie":
+					self.mstatus_mie = 1 if value else 0
+				elif mc.reg_w == "mstmpie":
+					self.mstatus_mpie = 1 if value else 0
 				else:
 					if mc.reg_w == "ra":
 						regnum = 1

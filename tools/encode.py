@@ -61,12 +61,17 @@ encodings = """
   0  i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1  	1024 (4,3,3) 	srai	rd, rs1, imm4zu
   1  i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1  	1024 (4,3,3) 	srli	rd, rs1, imm4u
 
-  1  0  1   .  .  .   .  .  .   .  0  0   1 1 1 1  	   1           	ecall
-  1  0  1   .  .  .   .  .  .   .  1  0   1 1 1 1  	   1           	ebreak
-  1  i0 1   i3 i2 i1  .  .  .   .  .  1   1 1 1 1  	  16 (4)       	mret	imm4zu
+  1  .  1   .  .  .   0  0  0   .  .  .   1 1 1 1  	   1           	ecall
+  1  .  1   .  .  .   0  0  1   .  .  .   1 1 1 1  	   1           	ebreak
+  1  .  1   .  .  .   0  1  0   d  d  d   1 1 1 1  	   8 (3)     	rdmepc	rd
+  1  .  1   .  .  .   0  1  1   s3 s3 s3  1 1 1 1  	   8 (3)     	wrmepc	rs3
+  1  .  1   .  .  .   1  0  0   d  d  d   1 1 1 1  	   8 (3)     	clrmie	rd
+  1  .  1   .  .  .   1  0  1   d  d  d   1 1 1 1  	   8 (3)     	setmie	rd
+  1  i0 1   i3 i2 i1  1  1  0   .  .  .   1 1 1 1  	  16 (4)       	mret	imm4zu
 
 """
-# 1  1  1   .  .  .   .  .  .   .  .  .   1 1 1 1  	   1           	*irq
+# not sure if IRQ needs a specific encoding, but all bits set is at least invalid in normal code
+# 1  1  1   1  1  1   1  1  1   1  1  1   1 1 1 1  	   1           	*irq
 
 
 class RegDef:
@@ -103,6 +108,56 @@ class RegDef:
 
 	def checkandremovebits(self, bits):
 		if self.constraint:
+			return True
+
+		for i in range(self.lobit):
+			assert bits[i] != self.name[1:]
+		for i in range(self.lobit, self.lobit+3):
+			assert bits[i] == self.name[1:]
+			bits[i] = ""
+		for i in range(self.lobit+3,len(bits)):
+			assert bits[i] != self.name[1:]
+
+		return True
+
+
+class CsrDef:
+	csrs = [ "mepc", "mstatus" ]
+	csr_indices = { "mepc": 0, "mstatus": 1 }
+
+	def __init__(self, name, lobit, constraint = None):
+		self.type = "c"
+		self.name = name
+		self.lobit = lobit
+		self.constraint = constraint
+
+	def encode(self, value):
+		if self.constraint is not None:
+			assert value == self.constraint
+			return 0
+		assert value >= 0 and value < len(CsrDef.csrs)
+		return value << self.lobit
+
+	def decode(self, encodedvalue):
+		if self.constraint is not None:
+			return self.constraint
+		return (encodedvalue >> self.lobit) & 1
+
+	def describe(self):
+		if self.constraint is not None:
+			return f"csr {CsrDef.csrs[self.constraint]}"
+		return f"csr shift={self.lobit}"
+
+	def test(self):
+		if self.constraint is not None:
+			assert self.encode(self.constraint) == 0
+			assert self.decode(0) == self.constraint
+		else:
+			for i in range(len(CsrDef.csrs)):
+				assert self.decode(self.encode(i)) == i
+
+	def checkandremovebits(self, bits):
+		if self.constraint is not None:
 			return True
 
 		for i in range(self.lobit):
@@ -225,7 +280,7 @@ class Instr:
 			if not arg:
 				continue
 
-			assert arg in argdefs.keys()
+			assert arg in argdefs.keys(), f"Arg {arg} not in {argdefs.keys()}"
 			argdef = argdefs[arg]
 
 			argdef.checkandremovebits(bits)
@@ -234,6 +289,8 @@ class Instr:
 				self.argtypes += "r"
 				self.constraintarg1idx = self.constraintarg2idx
 				self.constraintarg2idx = len(self.args)
+			elif arg in CsrDef.csr_indices.keys():
+				self.argtypes += "c"
 			else:
 				self.argtypes += "i"
 				self.immediateconstraint = arg
@@ -344,6 +401,12 @@ class Encoding:
 			( "rs3", 4 )
 		]:
 			self.argdefs[name] = RegDef(name, *args)
+
+		for name, *args in [
+			( "mepc", 0, 0 ),
+			( "mstatus", 0, 1 ),
+		]:
+			self.argdefs[name] = CsrDef(name, *args)
 
 		for name, *args in [
 			( "imm8h8z", [ -1,-1,-1,-1,-1,-1,-1,-1,14, 8, 9,10,11,12,13,15 ], True,  True  ),

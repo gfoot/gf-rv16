@@ -4,13 +4,30 @@ MMIO_INPUTSTATE = $ffff
 
 
 resetvector:
-	ebreak
+	j		resethandler
 ecallvector:
 	j		ecallhandler
 irqvector:
 	ebreak
 
+resethandler:
+	jump	_start, t0
+
+
 ecallhandler:
+#	csrr	ra, mepc           # read mepc into ra
+#	csrrsi	t0, mstatus, 8     # enable interrupts
+#	addi	ra, ra, 2          # adjust ra to step past the "ecall" instruction
+
+
+#ecallhandlerB:
+#	addi	sp, sp, -2
+#	csrr	t0, mepc           # read mepc into t0
+#	addi	t0, t0, 2          # adjust t0 to step past the "ecall" instruction
+#	sw		t0, (sp)           # save the adjusted return address for later
+#	csrrsi	t0, mstatus, 8     # enable interrupts
+
+
 	bnez	a2, 1f
 
 	# ecall 0 = exit
@@ -57,6 +74,19 @@ ecallhandler:
 
 1:
 	j		ecall_invalid
+
+
+.returnA:
+	ret
+
+
+#.returnB
+#	csrrci	t0, mstatus, 8    # disable interrupts again so that we can restore mepc safely
+#	lw		t0, (sp)          # read saved mepc value
+#	csrrw	t0, mepc, t0      # set mepc value
+#	add		sp, sp, 2
+#	mret
+
 
 
 ecall_exit:

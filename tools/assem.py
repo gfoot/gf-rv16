@@ -419,6 +419,12 @@ class Assembler:
 					if value == None:
 						self.error(f"Invalid register {v}")
 
+				elif typ == parse.TOK_CSR:
+					argtypes += "c"
+					args.append(v)
+					value = self.isaprops.csrnum(v)
+					if value == None:
+						self.error(f"Invalid csr {v}")
 				elif typ == parse.TOK_NUMBER:
 					argtypes += "i"
 					args.append(format_arg(v, "i"))
@@ -837,6 +843,43 @@ class Assembler:
 				self.filtered_emit(branchopposites[instr], argtypes, value_args[:-1] + [4], comment, True)
 				self.filtered_emit("j", "i", [value_args[-1]-2], comment, True)
 				return
+
+		if instr == "csrrsi" or instr == "csrrci":
+			assert argtypes == "rci"
+			rd, csr, imm = value_args
+
+			if csr == self.isaprops.csrnum("mstatus"):
+				assert imm == 8, f"{instr} is only supported on mstatus with immediate 8 (set/clear MIE)"
+				if instr == "csrrsi":
+					self.filtered_emit("setmie", "r", [rd], comment, True)
+				else:
+					self.filtered_emit("clrmie", "r", [rd], comment, True)
+				return
+
+			if csr == self.isaprops.csrnum("mepc"):
+				assert imm == 0, f"{instr} is only supported on mepc with immediate 0 (read without writing)"
+				self.filtered_emit("rdmepc", "r", [rd], comment, True)
+				return
+
+		if instr == "csrr":
+			assert argtypes == "rc"
+			rd, csr = value_args
+			assert csr == self.isaprops.csrnum("mepc"), f"{instr} is only supported on mepc"
+			self.filtered_emit("rdmepc", "r", [rd], comment, True)
+			return
+			
+		if instr == "csrrw":
+			assert argtypes == "rcr"
+			rd, csr, rs = value_args
+			assert csr == self.isaprops.csrnum("mepc"), f"{instr} is only supported on mepc"
+			assert rd == 0, f"{instr} is only supported with destination register zero"
+			self.filtered_emit("wrmepc", "r", [rs], comment, True)
+			return
+
+		if instr == "mret" and argtypes == "":
+			self.filtered_emit(instr, "i", [0], comment, True)
+			return
+
 
 		self.emit(instr, argtypes, value_args, comment if changed else "")
 

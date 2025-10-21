@@ -3,8 +3,14 @@ exit:
 	ecall
 
 puts:
+	addi	sp, sp, -2
+	sw		ra, (sp)
+
 	li		a2, 1
 	ecall
+
+	lw		ra, (sp)
+	addi	sp, sp, 2
 	ret
 
 putchar:
@@ -13,8 +19,14 @@ putchar:
 	ret
 	
 gets:
+	addi	sp, sp, -2
+	sw		ra, (sp)
+
 	li		a2, 3
 	ecall
+
+	lw		ra, (sp)
+	addi	sp, sp, 2
 	ret
 
 
