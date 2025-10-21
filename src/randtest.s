@@ -1,4 +1,4 @@
-.include "lib/vectors.s"
+.include "lib/os.s"
 .include "lib/random.s"
 .include "lib/io.s"
 

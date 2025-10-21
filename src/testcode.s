@@ -1,4 +1,4 @@
-.include "lib/vectors.s"
+.include "lib/os.s"
 .include "lib/str.s"
 .include "lib/io.s"
 
@@ -7,9 +7,6 @@ value2 = $15
 
 message:
 	.asciz "Hello world!\r\n","Goodbye "  , "this, ÞteÞst" 
-
-ecalltestmessage:
-	.asciz "ecall printing test\r\n"
 
 buffer:
 	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -58,14 +55,6 @@ _start:
 	li		a0, 10
 	sb		a0, MMIO_PUTCHAR(t0)
 	sb		a0, MMIO_PUTCHAR(t0)
-
-	la		a0, ecalltestmessage
-	li		a2, 1
-	ecall
-
-	li		a0, 'X'
-	li		a2, 2
-	ecall
 
 	li		x4, value1
 	li		x5, value2

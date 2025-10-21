@@ -1,4 +1,4 @@
-.include "lib/vectors.s"
+.include "lib/os.s"
 .include "lib/str.s"
 .include "lib/mem.s"
 .include "lib/io.s"
@@ -25,17 +25,15 @@ _start:
 	addi	sp, sp, -2
 	sw		a0, (sp)
 
-	call	printhex16
+	addi	s0, s0, 2
+	j		1b
+
+1:
 
 	li		a0, 10
 	call	putchar
 	li		a0, 13
 	call	putchar
-
-	addi	s0, s0, 2
-	j		1b
-
-1:
 
 	call	heapdump
 

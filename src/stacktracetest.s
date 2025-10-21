@@ -7,7 +7,7 @@
 # functions, tail calls, local variables, or shorter frames that don't save s0 and s1
 
 
-.include "lib/vectors.s"
+.include "lib/os.s"
 .include "lib/io.s"
 
 
