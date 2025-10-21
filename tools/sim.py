@@ -8,6 +8,7 @@ import tty
 from highlevelsimulation import HighLevelSimulation
 from microcodesimulation import MicrocodeSimulation
 from encode import Encoding
+from isaprops import IsaProps
 
 
 MMIO_BASE = 0xfffe
@@ -70,6 +71,7 @@ class Sim:
 
 		self.memory = memory
 		self.encoding = Encoding()
+		self.isaprops = IsaProps(self.encoding)
 
 		self.log = log if log else Log()
 
@@ -225,6 +227,13 @@ class Sim:
 		return stackframes
 
 
+	def coredump(self):
+		with open("core", "wb") as fp:
+			for word in self.memory:
+				fp.write(bytes((word & 0xff, word >> 8)))
+			fp.close()
+		sys.stdout.write("core dumped\n")
+
 	def exception(self, index, addr, message):
 
 		pc = self.state.getpc()
@@ -232,8 +241,8 @@ class Sim:
 
 		exceptionstring = f"Exception {index:02X} at address {addr:04x}: {message}"
 
-		regsstr = f"  pc = {pc:04X}  "
-		regsstr += "  ".join([f"x{i} = {self.state.ureg(i):04X}" for i in range(1, 9)])
+		regsstr = f"  pc={pc:04X}  "
+		regsstr += "  ".join([f"{self.isaprops.regname(i)}={self.state.ureg(i):04X}" for i in range(1, 9)])
 
 		def formatstack(addr, count):
 			values = []
@@ -267,6 +276,9 @@ class Sim:
 		sys.stdout.write("\n")
 
 		self.log.error(exceptionstring)
+
+		self.coredump()
+
 		sys.exit(1)
 
 

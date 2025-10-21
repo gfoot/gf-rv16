@@ -1,8 +1,8 @@
 Some things to do at some point
 
 Priorities:
- * IRQs
  * Write more code
+ * Accurate instruction-fetch simulation
 
 
 ISA design
@@ -24,6 +24,8 @@ System software
  * On-device ebreak/callstack handling
 	Again the problem is the simulator is doing all the work, which won't work with hardware
 
+ * Flesh out OS and library code
+
 
 Assembler
 
@@ -44,16 +46,17 @@ Assembler
 
 Simulator/debugging
 
- * More MMIO support
-	hardware timer(s)
+ * Simulate a hardware timer - MMIO + IRQ
 
- * IRQ generation and correct IRQ handler simulation
-	Need: IRQ on character available
-	Could: IRQ on timer expiry
+ * Simulate "send" IRQ somehow?
+
+ * Make I/O and timer simulation more like 65C51/65C22
 
  * Simulate pipelined instruction fetch as part of microcode simulation
 
- * Core dump and offline debugger
+ * Simulate IC pins
+
+ * Offline debugger
 
  * REPL for simulator (single step, breakpoints, etc)
 
