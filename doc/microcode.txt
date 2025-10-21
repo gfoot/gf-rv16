@@ -39,12 +39,15 @@ BEQ   rs1, rs2, imm    .	0		low	0x00	regs	rs2	xor	mar_w
                        .	4		low	imm	pc		ad0				pc_w		
                        .	5	1	high	imm	pc		adc				pc_w		
                        .													
-BNE   rs1, rs2, imm    .	0		low	0x00	regs	rs2	xor	mar_w			
-                       .	1	z	low	mar	regs	rs1	xor     
-                       .	2		high	0x00	regs	rs2	xor	mar_w					
-                       .	3	z	high	mar	regs	rs1	xor	
-                       .	4		low	imm	pc		ad0				pc_w		
-                       .	5	1	high	imm	pc		adc				pc_w		
+BNE   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
+                       .	1		low	mar	regs	rs1	xor	mar_w
+                       .	2		low	mar	marn		ad0
+                       .	3		high	0xff	regs	rs2	xor	mar_w					
+                       .	4		high	mar	regs	rs1	xor	mar_w
+                       .	5		high	mar	zero		adc
+                       .	6	z	high	0xff	zero		adc
+                       .	7		low	imm	pc		ad0				pc_w		
+                       .	8	1	high	imm	pc		adc				pc_w		
                        .													
 BLT   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
                        .	1		low	mar	regs	rs1	ad1     			
