@@ -520,7 +520,7 @@ class Assembler:
 		if self.expectations:
 			self.error(f"Unresolved expectations: {' : '.join(self.expectations)}")
 
-		return self.output, self.labels["_start"]
+		return self.output
 
 
 	def builddebuginfo(self):
@@ -893,7 +893,7 @@ if __name__ == "__main__":
 	if DEBUG:
 		print("Assembling...")
 	assembler = Assembler()
-	result, entry = assembler.assemble(sys.argv[1], sys.stdout)
+	result = assembler.assemble(sys.argv[1], sys.stdout)
 
 	if DEBUG:
 		print()

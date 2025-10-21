@@ -305,7 +305,7 @@ if __name__ == "__main__":
 	print(f"Assembling {filename}...")
 	with open(listingfilename, "w") as listingfile:
 		assembler = assem.Assembler()
-		mem, entry = assembler.assemble(filename, listingfile)
+		mem = assembler.assemble(filename, listingfile)
 		listingfile.close()
 
 		debuginfo = assembler.builddebuginfo()

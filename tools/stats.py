@@ -1,6 +1,7 @@
 import sys
 
 import assem
+import encode
 
 def arg2int(arg):
 	if arg.startswith("x"):
@@ -14,7 +15,10 @@ def arg2int(arg):
 if __name__ == "__main__":
 
 	filename = sys.argv[1]
-	result, entry = assem.Assembler().assemble(filename)
+	memory = assem.Assembler().assemble(filename)
+
+	encoding = encode.Encoding()
+	result = [encoding.decode(value) for value in memory]
 
 	done = False
 	while not done:
@@ -66,7 +70,7 @@ if __name__ == "__main__":
 
 	hiinstrs = set(["lui", "auipc"])
 
-	for instr, argtypes, args in result:
+	for instr,argtypes,args in result:
 
 		if instr == "none" or instr == "data":
 			continue
@@ -81,6 +85,9 @@ if __name__ == "__main__":
 			continue
 
 		imm = args[argtypes.index("i") if "i" in argtypes else argtypes.index("o")]
+
+		if imm >= 0x8000:
+			imm -= 0x10000
 
 		hibs = 1
 		for i in range(16):
