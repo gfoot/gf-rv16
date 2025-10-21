@@ -269,7 +269,7 @@ class MicrocodeSimulation:
 					self.regs[hilo][regnum-1] = value
 
 			if mc.pc_w:
-				self.pcnext[hilo] = bus_c
+				self.pcnext[hilo] = bus_c & (hilo-2)
 
 			if mc.mem_w:
 				addr = (self.mar[1] << 8) + self.mar[0] + hilo
