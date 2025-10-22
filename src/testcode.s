@@ -1,6 +1,7 @@
 .include "lib/os.s"
 .include "lib/str.s"
 .include "lib/io.s"
+.include "lib/mem.s"
 
 value1 = 18
 value2 = $15

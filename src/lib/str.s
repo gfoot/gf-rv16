@@ -15,11 +15,12 @@ strlen:
 strcpy:
     # a0 = destination
     # a1 = source
+	mv		a2, a0
 1:
     lb      t0, 0(a1)    # Copy a character from a1...
-    sb      t0, 0(a0)    # ... to a0
+    sb      t0, 0(a2)    # ... to a2
 
-    addi    a0, a0, 1    # Advance both pointers
+    addi    a2, a2, 1    # Advance both pointers
     addi    a1, a1, 1
 
     bnez    t0, 1b       # Loop back if the character was not zero
@@ -28,6 +29,10 @@ strcpy:
 
 
 strncpy:
+	addi	sp, sp, -4
+	sw		ra, (sp)
+	sw		a0, 2(sp)
+
     # a0 = destination
     # a1 = source
     # a2 = size of destination buffer
@@ -48,6 +53,8 @@ strncpy:
 	sb		t0, -1(a0)
 
 1:
+	lw		a0, 2(sp)
+	addi	sp, sp, 4
 	ret
 
 
@@ -85,4 +92,56 @@ strrev:
 	ret
 
 
+strdup:
+	.oldstringptr = 2
+	.newstringptr = 4
+
+	addi	sp, sp, -6
+	sw		ra, (sp)
+	sw		a0, .oldstringptr(sp)
+
+	call	strlen
+
+	addi	a0, a0, 1
+
+	call	malloc
+
+	sw		a0, .newstringptr(sp)
+
+	lw		a1, .oldstringptr(sp)
+	call	strcpy
+
+	lw		a0, .newstringptr(sp)
+	lw		ra, (sp)
+	addi	sp, sp, 6
+	ret
+
+
+strchr:
+	lbu		a2, (a0)
+	beqz	a2, 2f
+	beq		a1, a2, 1f
+	addi	a0, a0, 1
+	j		strchr
+2:
+	li		a0, 0
+1:
+	ret
+
+
+strcat:
+	mv		a2, a0
+1:
+	lb		t0, (a2)
+	addi	a2, a2, 1
+	bnez	t0, 1b
+
+1:	
+	lb		t0, (a1)
+	sb		t0, -1(a2)
+	addi	a1, a1, 1
+	addi	a2, a2, 1
+	bnez	t0, 1b
+
+	ret
 
