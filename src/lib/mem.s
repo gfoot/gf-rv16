@@ -382,43 +382,41 @@ heapdump:
 
 
 printblockheader:
-	addi	sp, sp, -6
+	addi	sp, sp, -4
 	sw		ra, (sp)
-	sw		a0, 2(sp)
-	sw		a1, 4(sp)
+	sw		s0, 2(sp)
 
-	mv		a1, a0
+	mv		s0, a0
 
 	call	printhex16
 
 	call	printimm
 	.asciz " - "
 
-	lw		a0, alloc_header_prev(a1)
+	lw		a0, alloc_header_prev(s0)
 	call	printhex16
 	li		a0, ' '
 	call	putchar
 
-	lw		a0, alloc_header_prevfree(a1)
+	lw		a0, alloc_header_prevfree(s0)
 	call	printhex16
 	li		a0, ' '
 	call	putchar
 
-	lw		a0, alloc_header_nextfree(a1)
+	lw		a0, alloc_header_nextfree(s0)
 	call	printhex16
 	li		a0, ' '
 	call	putchar
 
-	lw		a0, alloc_header_blocksize(a1)
+	lw		a0, alloc_header_blocksize(s0)
 	call	printhex16
 
 	call printimm
 	.asciz "\r\n"
 
 	lw		ra, (sp)
-	lw		a0, 2(sp)
-	lw		a1, 4(sp)
-	addi	sp, sp, 6
+	lw		s0, 2(sp)
+	addi	sp, sp, 4
 	ret
 
 
