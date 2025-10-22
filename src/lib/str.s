@@ -145,3 +145,73 @@ strcat:
 
 	ret
 
+
+memset:
+	addi	sp, sp, -2
+	sw		ra, (sp)
+
+	mv		ra, a0
+
+	andi	t0, ra, 1
+	beqz	t0, 1f
+	beqz	a2, 1f
+	sb		a1, (ra)
+	addi	ra, ra, 1
+	addi	a2, a2, -1
+
+1:
+	andi	t0, a2, 1
+	beqz	t0, 1f
+	add		t0, ra, a2
+	sb		a1, -1(t0)
+	addi	a2, a2, -1
+
+1:
+	beqz	a2, 2f
+	slli	t0, a1, 8
+	srli	a1, t0, 8
+	or		a1, a1, t0
+
+1:
+	sw		a1, (ra)
+	addi	ra, ra, 2
+	addi	a2, a2, -2
+	bnez	a2, 1b
+
+2:
+	lw		ra, (sp)
+	addi	sp, sp, 2
+	ret
+
+
+memsetb:
+	beqz	a2, 2f
+	mv		t0, a0
+1:
+	sb		a1, (t0)
+	addi	t0, t0, 1
+	addi	a2, a2, -1
+	bnez	a2, 1b
+2:
+	ret
+
+
+memcpy:
+	addi	sp, sp, -2
+	sw		ra, (sp)
+
+	beqz	a2, 2f
+	mv		ra, a0
+1:
+	lb		t0, (a1)
+	sb		t0, (ra)
+	addi	a1, a1, 1
+	addi	ra, ra, 1
+	addi	a2, a2, -1
+	bnez	a2, 1b
+
+2:
+	lw		ra, (sp)
+	addi	sp, sp, 2
+	ret
+

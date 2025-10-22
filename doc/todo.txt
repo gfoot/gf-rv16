@@ -62,8 +62,6 @@ Simulator/debugging
 
  * Log memory reads and writes in traces
 
- * tools/stats.py seems to be broken, it's not combining auipc/addi pairs etc
-
 
 Hardware design
 
