@@ -86,7 +86,7 @@ printimm:
 
 printnum:
 	mv		a1, a0
-	la		t0, printnumtable
+	la		t0, printnumtable+2
 1:
 	lh		a2, 2(t0)
 	bltu	a1, a2, 1f
@@ -96,7 +96,7 @@ printnum:
 	lh		a2, (t0)
 3:	
 	li		a0, 48
-	blt		a1, a2, 1f
+	bltu	a1, a2, 1f
 2:
 	sub		a1, a1, a2
 	addi	a0, a0, 1
