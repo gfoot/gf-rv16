@@ -100,7 +100,7 @@ printnum:
 2:
 	sub		a1, a1, a2
 	addi	a0, a0, 1
-	bge		a1, a2, 2b
+	bgeu	a1, a2, 2b
 1:
 	li		a2, 0
 	sb		a0, MMIO_PUTCHAR(a2)
@@ -154,4 +154,9 @@ printhex8:
 	sw		ra, (sp)
 	tail	1b
 
+
+printnl:
+	li		a0, 10
+	sb		a0, MMIO_PUTCHAR-10(a0)
+	ret
 
