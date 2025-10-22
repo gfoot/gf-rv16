@@ -367,7 +367,7 @@ class Assembler:
 					if t != parse.TOK_NUMBER:
 						self.error(f".{directive} argument {arg} is not a number")
 
-					wordstowrite.append(v)
+					wordstowrite.append(v & 0xffff)
 
 				if self.assemblypass == self.lastpass:
 					datastr = ','.join([f"{d:04X}" for d in wordstowrite])
