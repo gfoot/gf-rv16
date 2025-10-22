@@ -25,19 +25,19 @@ if __name__ == "__main__":
 		done = True
 		pinstr,pargtypes,pargs = None,None,None
 		for i,(instr,argtypes,args) in enumerate(result):
-			if pinstr == "auipc" and instr == "addi":
-				if pargs[0] == args[0] and args[0] == args[1]:
-					nargs = [args[0],pargs[1]+args[2]]
+			if pinstr == "auipc" and instr == "addi8":
+				if pargs[0] == args[0]:
+					nargs = [args[0],pargs[1]+args[1]]
 					if nargs[1] >= 0x8000:
 						nargs[1] -= 0x10000
 					result[i-1:i+1] = [("auipc_addi", "ri", nargs)]
 					done = False
 					break
 			if pinstr == "auipc_addi" and instr == "jalr":
-				if pargs[0] == args[0] and args[0] == args[1]:
-					assert args[2] == 0
-					nargs = [args[0],pargs[1]]
-					result[i-1:i+1] = [("jal_l", "ri", nargs)]
+				if pargs[0] == args[0]:
+					assert args[1] == 0
+					nargs = [pargs[1]]
+					result[i-1:i+1] = [("jal_l", "i", nargs)]
 					done = False
 					break
 			if pinstr == "auipc_addi" and instr == "jr":
@@ -45,6 +45,12 @@ if __name__ == "__main__":
 					assert args[1] == 0
 					nargs = [pargs[1]]
 					result[i-1:i+1] = [("j_l", "i", nargs)]
+					done = False
+					break
+			if pinstr == "auipc_addi" and (instr == "lw" or instr == "sw"):
+				if pargs[0] == args[1] and args[2] == 0:
+					nargs = [args[0], args[1], pargs[1]+args[2]]
+					result[i-1:i+1] = [(instr + "_l", "rri", nargs)]
 					done = False
 					break
 			if pinstr == "beq" and instr == "j" and pargs[2] == 4:
@@ -55,12 +61,18 @@ if __name__ == "__main__":
 				result[i-1:i+1] = [("beq_l", "rri", pargs[:2] + args)]
 				done = False
 				break
+
 			pinstr,pargtypes,pargs = instr,argtypes,args
 
-		# auipc addi load/store
-		# auipc addi jalr
-		# auipc addi jr
-		# bXXX j
+
+	# This next loop prints out all the instructions that still appear following 
+	# auipc_addi, as a potential source of more things to fuse in the loop above
+	if False:
+		pinstr,pargtypes,pargs = None,None,None
+		for i,(instr,argtypes,args) in enumerate(result):
+			if pinstr == "auipc_addi":
+				print((pinstr,instr,pargs,args))
+			pinstr,pargtypes,pargs = instr,argtypes,args
 
 	loranges = {}
 
