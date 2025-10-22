@@ -383,7 +383,7 @@ class Assembler:
 						self.error(f"Invalid string: {arg}")
 					filename = arg[1:-1]
 
-					searchpath = [ os.path.dirname(self.filename) or "." ]
+					searchpath = [ os.path.dirname(self.filename) or ".", "src" ]
 
 					found = False
 					for path in searchpath:
