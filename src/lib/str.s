@@ -215,3 +215,31 @@ memcpy:
 	addi	sp, sp, 2
 	ret
 
+
+memcmp:
+	addi	sp, sp, -2
+	sw		ra, (sp)
+
+	li		ra, 0
+
+	beqz	a2, 2f
+
+1:
+	lb		ra, (a0)
+	lb		t0, (a1)
+	sub		ra, ra, t0
+	bnez	ra, 2f
+
+	addi	a0, a0, 1
+	addi	a1, a1, 1
+	addi	a2, a2, -1
+	bnez	a2, 1b
+
+2:
+	mv		a0, ra
+
+	lw		ra, (sp)
+	addi	sp, sp, 2
+	ret
+
+

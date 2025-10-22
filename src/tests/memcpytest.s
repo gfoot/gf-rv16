@@ -24,6 +24,37 @@ _start:
 
 	li		a1, $4000
 	li		a2, $100
+	call	memcmp
+	call	printnum
+	call	printnl
+
+	li		a0, $4104
+	lbu		t0, (a0)
+	addi	t0, t0, 12
+	sb		t0, (a0)
+
+	li		a0, $4100
+	li		a1, $4000
+	li		a2, $100
+	call	memcmp
+	call	printnum
+	call	printnl
+
+	li		a0, $4104
+	lbu		t0, (a0)
+	addi	t0, t0, -22
+	sb		t0, (a0)
+
+	li		a0, $4100
+	li		a1, $4000
+	li		a2, $100
+	call	memcmp
+	call	printnum
+	call	printnl
+
+	li		a0, $4100
+	li		a1, $4000
+	li		a2, $100
 	li		s1, $4200
 1:
 	lw		t0, (a0)
