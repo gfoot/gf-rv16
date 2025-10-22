@@ -229,6 +229,16 @@ class Sim:
 
 
 	def coredump(self):
+		if False:
+		    step = 16
+		    for base in range(0,len(self.memory),step):
+			    words = self.memory[base:base+step]
+			    if words == [0] * 16:
+				    continue
+			    sys.stdout.write(f"{base*2:04X}:  ")
+			    sys.stdout.write(" ".join([f"{w:04X}" for w in words]))
+			    sys.stdout.write("\n")
+
 		with open("core", "wb") as fp:
 			for word in self.memory:
 				fp.write(bytes((word & 0xff, word >> 8)))
