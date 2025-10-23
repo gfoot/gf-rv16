@@ -199,7 +199,7 @@ class MicrocodeSimulation:
 				bus_a = None
 
 			if mc.bus_b == "mem":
-				addr = (self.mar[1] << 8) + self.mar[0] + hilo
+				addr = ((self.mar[1] << 8) + self.mar[0]) | hilo
 				bus_b = self.memreadb(addr)
 			elif mc.bus_b == "regs":
 				if mc.reg_r == "mepc":
@@ -272,7 +272,7 @@ class MicrocodeSimulation:
 				self.pcnext[hilo] = bus_c & (hilo-2)
 
 			if mc.mem_w:
-				addr = (self.mar[1] << 8) + self.mar[0] + hilo
+				addr = ((self.mar[1] << 8) + self.mar[0]) | hilo
 				self.memwriteb(addr, bus_b) # Note - not bus_c
 
 
