@@ -53,9 +53,6 @@ class IsaProps:
 
 			self.immed_constraints[instrname] = constr
 
-		self.branchmin = -64
-		self.branchmax = 62
-
 		self.luimultiplier = self.immed_constraints["lui"][3]
 		self.auipcmultiplier = self.immed_constraints["auipc"][3]
 

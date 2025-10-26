@@ -726,9 +726,10 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			if lo:
+			if not self.isaprops.checkimmed(lo, instr):
 				self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
-			self.filtered_emit(instr, "ror", [reg, 0, reg], comment, True)
+				lo = 0
+			self.filtered_emit(instr, "ror", [reg, lo, reg], comment, True)
 			return
 
 		if argtypes == "rir" and instr in {"sw", "sb"}:
@@ -738,9 +739,10 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(value - self.pos, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [rs2, hi], comment, True)
-			if lo:
+			if not self.isaprops.checkimmed(lo, instr):
 				self.filtered_emit("addi", "rri", [rs2, rs2, lo], comment, True)
-			self.filtered_emit(instr, "ror", [rs1, 0, rs2], comment, True)
+				lo = 0
+			self.filtered_emit(instr, "ror", [rs1, lo, rs2], comment, True)
 			return
 
 		if instr == "call" or (instr == "jal" and argtypes == "i"):
@@ -756,9 +758,10 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [reg, hi], comment, True)
-			if lo:
+			if not self.isaprops.checkimmed(lo, "jalr"):
 				self.filtered_emit("addi", "rri", [reg, reg, lo], comment, True)
-			self.filtered_emit("jalr", "rri", [reg, reg, 0], comment, True)
+				lo = 0
+			self.filtered_emit("jalr", "rri", [reg, reg, lo], comment, True)
 			return
 
 		if instr == "jump":
@@ -772,9 +775,10 @@ class Assembler:
 			lo,hi = self.calc_lo_hi(addr, self.isaprops.auipcmultiplier)
 
 			self.filtered_emit("auipc", "ri", [rt, hi], comment, True)
-			if lo:
+			if not self.isaprops.checkimmed(lo, "jr"):
 				self.filtered_emit("addi", "rri", [rt, rt, lo], comment, True)
-			self.filtered_emit("jr", "ri", [rt, 0], comment, True)
+				lo = 0
+			self.filtered_emit("jr", "ri", [rt, lo], comment, True)
 			return
 
 		if instr == "tail":
@@ -839,7 +843,7 @@ class Assembler:
 		if instr in branchopposites.keys():
 			assert argtypes.endswith("i")
 			imm = value_args[-1]
-			if imm > self.isaprops.branchmax or imm < self.isaprops.branchmin:
+			if not self.isaprops.checkimmed(imm, instr):
 				self.filtered_emit(branchopposites[instr], argtypes, value_args[:-1] + [4], comment, True)
 				self.filtered_emit("j", "i", [value_args[-1]-2], comment, True)
 				return

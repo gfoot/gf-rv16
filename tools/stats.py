@@ -12,6 +12,17 @@ def arg2int(arg):
 		value = int(arg)
 	return value
 
+
+branchopposites = {
+	"blt":  "bge", 
+	"bge":  "blt", 
+	"ble":  "bgt", 
+	"bgt":  "ble", 
+	"beq":  "bne", 
+	"bne":  "beq", 
+}
+
+
 if __name__ == "__main__":
 
 	filename = sys.argv[1]
@@ -33,32 +44,47 @@ if __name__ == "__main__":
 					result[i-1:i+1] = [("auipc_addi", "ri", nargs)]
 					done = False
 					break
+			if pinstr == "auipc" and instr == "jalr":
+				if pargs[0] == args[0]:
+					nargs = [pargs[1]+args[1]]
+					result[i-1:i+1] = [("jal_l", "i", nargs)]
+					done = False
+					break
+			if pinstr == "auipc" and instr == "jr":
+				if pargs[0] == args[0]:
+					nargs = [pargs[1]+args[1]]
+					result[i-1:i+1] = [("j_l", "i", nargs)]
+					done = False
+					break
+			if pinstr == "auipc" and (instr == "lw" or instr == "sw"):
+				if pargs[0] == args[1] and args[2] == 0:
+					nargs = [args[0], args[1], pargs[1]+args[2]]
+					result[i-1:i+1] = [(instr + "_l", "rri", nargs)]
+					done = False
+					break
 			if pinstr == "auipc_addi" and instr == "jalr":
 				if pargs[0] == args[0]:
 					assert args[1] == 0
 					nargs = [pargs[1]]
-					result[i-1:i+1] = [("jal_l", "i", nargs)]
+					result[i-1:i+1] = [("jal_ll", "i", nargs)]
 					done = False
 					break
 			if pinstr == "auipc_addi" and instr == "jr":
 				if pargs[0] == args[0]:
 					assert args[1] == 0
 					nargs = [pargs[1]]
-					result[i-1:i+1] = [("j_l", "i", nargs)]
+					result[i-1:i+1] = [("j_ll", "i", nargs)]
 					done = False
 					break
 			if pinstr == "auipc_addi" and (instr == "lw" or instr == "sw"):
 				if pargs[0] == args[1] and args[2] == 0:
 					nargs = [args[0], args[1], pargs[1]+args[2]]
-					result[i-1:i+1] = [(instr + "_l", "rri", nargs)]
+					result[i-1:i+1] = [(instr + "_ll", "rri", nargs)]
 					done = False
 					break
-			if pinstr == "beq" and instr == "j" and pargs[2] == 4:
-				result[i-1:i+1] = [("bne_l", "rri", pargs[:2] + args)]
-				done = False
-				break
-			if pinstr == "bne" and instr == "j" and pargs[2] == 4:
-				result[i-1:i+1] = [("beq_l", "rri", pargs[:2] + args)]
+			if instr == "j" and pinstr and pinstr[:3] in branchopposites.keys() and pargs[-1] == 4:
+				opp = branchopposites[pinstr[:3]]
+				result[i-1:i+1] = [(opp + pinstr[3:] + "_l", pargtypes, pargs[:-1] + args)]
 				done = False
 				break
 			if pinstr == "lui" and instr == "addi8":
@@ -99,7 +125,7 @@ if __name__ == "__main__":
 		if instr == "none" or instr == "data":
 			continue
 
-		if instr in { "beq", "bne", "blt", "bge", "beq_l", "bne_l" }:
+		if instr[:3] in branchopposites.keys():
 			if argtypes == "rri" and args[0] == args[1]:
 				instr = instr[:3] + "z" + instr[3:]
 				argtypes = "ri"
@@ -110,7 +136,7 @@ if __name__ == "__main__":
 
 		imm = args[argtypes.index("i") if "i" in argtypes else argtypes.index("o")]
 
-		if imm >= 0x8000:
+		while imm >= 0x8000:
 			imm -= 0x10000
 
 		hibs = 1
@@ -156,6 +182,6 @@ if __name__ == "__main__":
 	for instr in sorted(hiranges.keys()):
 		lo,hi,hibs = hiranges[instr]
 		freq = frequencies[instr]
-		print(f"{instr:<15} {freq:4}  {lo:5}  {hi:5}  {hibs:5}")
+		print(f"{instr:<15} {freq:4}  {lo:6}  {hi:6}  {hibs:5}")
 
 
