@@ -9,6 +9,7 @@ write code with) and implementable (i.e. instructions can be
 encoded reasonably in a 16-bit encoding space, and can execute on a 
 relatively simple back end core)
 
+See the wiki on github for more information: https://github.com/gfoot/gf-rv16/wiki
 
 # Python tools
 
@@ -72,10 +73,5 @@ and malloc/free, using approximately the same interfaces as C's standard library
 
 # Documentation
 
-The only thing in the 'doc' folder is a table summarising the supported instructions, with a 
-potential encoding for them, and notes on substitutions (where certain combinations of arguments 
-should be encoded using other instructions that give the same effect).  The documented encoding 
-is somewhat out-of-date as I already changed some of the widths of immediates; I will update it
-when the widths are more settled (nearly there I think).  See tools/isatest.py and tools/isaprops.py 
-for two different views on the widths I'm using now.
+See the wiki on github for more information: https://github.com/gfoot/gf-rv16/wiki
 
