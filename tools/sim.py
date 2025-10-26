@@ -1,14 +1,12 @@
 import assem
-import fcntl
 import os
 import sys
-import termios
-import tty
 
 from highlevelsimulation import HighLevelSimulation
 from microcodesimulation import MicrocodeSimulation
 from encode import Encoding
 from isaprops import IsaProps
+from nbio import NonBlockingInput
 
 
 MMIO_BASE = 0xfffe
@@ -62,7 +60,7 @@ class Sim:
 			return None,None
 
 
-	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None):
+	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None):
 		self.state = simulation.State(self, cycletrace)
 		self.state.setpc(entry)
 		self.state.advancepc()
@@ -79,6 +77,7 @@ class Sim:
 
 		self.stop = False
 
+		self.inp = inp
 		self.pendinginput = None
 
 
@@ -165,8 +164,8 @@ class Sim:
 	def step(self):
 
 		# TODO: encapsulate this I/O interrupt stuff better
-		if data := sys.stdin.buffer.read(1):
-			self.pendinginput = data[0] & 0xff
+		if (ch := self.inp.getchar()) is not None:
+			self.pendinginput = ch & 0xff
 
 		if self.state.mstatus_mie and self.pendinginput is not None:
 			instr,argtypes,args = "*irq", "", []
@@ -230,14 +229,14 @@ class Sim:
 
 	def coredump(self):
 		if False:
-		    step = 16
-		    for base in range(0,len(self.memory),step):
-			    words = self.memory[base:base+step]
-			    if words == [0] * 16:
-				    continue
-			    sys.stdout.write(f"{base*2:04X}:  ")
-			    sys.stdout.write(" ".join([f"{w:04X}" for w in words]))
-			    sys.stdout.write("\n")
+			step = 16
+			for base in range(0,len(self.memory),step):
+				words = self.memory[base:base+step]
+				if words == [0] * 16:
+					continue
+				sys.stdout.write(f"{base*2:04X}:  ")
+				sys.stdout.write(" ".join([f"{w:04X}" for w in words]))
+				sys.stdout.write("\n")
 
 		with open("core", "wb") as fp:
 			for word in self.memory:
@@ -345,22 +344,10 @@ if __name__ == "__main__":
 	else:
 		simulation = MicrocodeSimulation
 
-	stdin = sys.stdin.fileno()
-	tattr = termios.tcgetattr(stdin)
-	orig_fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
-
-	try:
-		tty.setcbreak(stdin, termios.TCSANOW)
-		fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl | os.O_NONBLOCK)
-
-		sim = Sim(simulation, mem, log=log, debuginfo=debuginfo);
-		
+	with NonBlockingInput() as inp:
+		sim = Sim(simulation, mem, log=log, debuginfo=debuginfo, inp=inp);
 		while sim.step():
 			pass
-
-	finally:
-		termios.tcsetattr(stdin, termios.TCSANOW, tattr)
-		fcntl.fcntl(sys.stdin, fcntl.F_SETFL, orig_fl)
 
 	if trace:
 		tracefile.close()
