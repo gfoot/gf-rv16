@@ -27,6 +27,7 @@ if os.name == "nt":
 else:
 
 	import fcntl
+	import sys
 	import termios
 	import tty
 
@@ -42,7 +43,7 @@ else:
 			fcntl.fcntl(sys.stdin, fcntl.F_SETFL, self.orig_fl | os.O_NONBLOCK)
 			return self
 
-		def __exit__(self):
+		def __exit__(self, exc_type, exc_value, exc_traceback):
 			termios.tcsetattr(self.stdinfileno, termios.TCSANOW, self.tattr)
 			fcntl.fcntl(sys.stdin, fcntl.F_SETFL, self.orig_fl)
 
