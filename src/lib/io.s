@@ -21,10 +21,10 @@ gets:
 	beqz	a0, .backspace
 	bgez	a0, .again
 
-	addi	a0, a0, 117
+	addi	a0, a0, 127 - 10
 	beqz	a0, .enter
 
-	addi	a0, a0, -22
+	addi	a0, a0, 10 - 32
 	bltz	a0, .again
 
 	addi	a0, a0, 32
