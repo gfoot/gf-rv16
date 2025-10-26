@@ -339,7 +339,7 @@ class Assembler:
 						self.error(f"Invalid string: {arg}")
 
 					s = eval(arg) # Let Python parse the string
-					bytestowrite.extend([ord(c) for c in s] + [0])
+					bytestowrite.extend([ord(c) & 0xff for c in s] + [0])
 
 				if len(bytestowrite) & 1:
 					bytestowrite.append(0)
