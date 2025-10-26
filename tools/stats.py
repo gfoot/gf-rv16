@@ -61,6 +61,18 @@ if __name__ == "__main__":
 				result[i-1:i+1] = [("beq_l", "rri", pargs[:2] + args)]
 				done = False
 				break
+			if pinstr == "lui" and instr == "addi8":
+				if pargs[0] == args[0]:
+					nargs = [args[0],pargs[1]+args[1]]
+					if nargs[1] >= 0x8000:
+						nargs[1] -= 0x10000
+					result[i-1:i+1] = [("li_l", "ri", nargs)]
+					done = False
+					break
+			if instr == "slli" and args[2] == 0:
+				result[i:i+1] = [("mv", "rr", args[:2])]
+				done = False
+				break
 
 			pinstr,pargtypes,pargs = instr,argtypes,args
 
