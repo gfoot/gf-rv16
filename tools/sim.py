@@ -62,10 +62,8 @@ class Sim:
 
 	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None):
 		self.state = simulation.State(self, cycletrace)
-		self.state.setpc(entry)
-		self.state.advancepc()
-
-		self.instructiondispatcher = simulation.InstructionDispatcher()
+		#self.state.setpc(entry)
+		#self.state.advancepc()
 
 		self.memory = memory
 		self.encoding = Encoding()
@@ -148,9 +146,13 @@ class Sim:
 			sys.stdout.flush()
 
 
+	def memtrace(self, addr, value, readnotwrite):
+		self.log.trace(f"{'R' if readnotwrite else 'W'}:${addr:04x} {'=>' if readnotwrite else '<='} ${value:02x}")
+
+
 	def cycletrace(self, text):
 		if cycletrace:
-			self.log.trace(f"    {text}")
+			self.log.trace(" "*27 + text)
 
 
 	def format_arg(self, arg, typ):
@@ -163,28 +165,18 @@ class Sim:
 
 	def step(self):
 
-		# TODO: encapsulate this I/O interrupt stuff better
 		if (ch := self.inp.getchar()) is not None:
 			self.pendinginput = ch & 0xff
 
-		if self.state.mstatus_mie and self.pendinginput is not None:
-			instr,argtypes,args = "*irq", "", []
-		else:
+		self.state.setirq(self.pendinginput is not None)
+
+		if not self.state.cycle():
+			# Instruction ended
 			value = self.memory[self.state.getpc()//2]
 			instr,argtypes,args = self.encoding.decode(value)
-
-
-		argsfmt = ', '.join([f"{self.format_arg(arg,typ)}" for arg,typ in zip(args,argtypes)])
-		regsfmt = "  ".join([" ".join([f"{self.state.ureg(n+1):04x}" for n in range(m,m+4)]) for m in range(0,8,4)])
-		self.log.trace(f"{self.state.getpc():04x}   {instr:<6}  {argsfmt:<20}   {regsfmt}")
-
-
-		# Dispatch the instruction
-		if not self.instructiondispatcher.dispatch(self.state, instr, argtypes, args):
-			self.exception(2, self.state.getpc(), f"Unsupported instruction '{instr}' with argtypes '{argtypes}'")
-
-
-		self.state.advancepc()
+			argsfmt = ', '.join([f"{self.format_arg(arg,typ)}" for arg,typ in zip(args,argtypes)])
+			regsfmt = "  ".join([" ".join([f"{self.state.ureg(n+1):04x}" for n in range(m,m+4)]) for m in range(0,8,4)])
+			self.log.trace(f"                {self.state.getpc():04x}  ${value:04x} = {instr:<6}  {argsfmt:<20}   {regsfmt}")
 
 		return not self.stop
 

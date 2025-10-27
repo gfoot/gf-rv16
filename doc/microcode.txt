@@ -1,5 +1,10 @@
 mnemonic               .        cycle   last    high    bus_a   bus_b   reg_r   aluop   mar_w   reg_w   reg_win pc_w    mem_w   if
                        .       
+*RESET                 .        0       .       low     0x00    zero    .       ad0     .       mepc    alu     pc_w    .       .
+                       .        1       .       high    0x00    zero    .       ad0     .       mepc    alu     pc_w    .       .
+                       .        2       .       low     0x00    zero    .       ad0     .       mstmpie alu     .       .       if
+                       .        3       1       low     0x00    zero    .       ad0     .       mstmie  alu     .       .       if
+
 JAL   ra, imm          .        0       .       low     imm     pc      .       ad0     .       ra      pcnext  pc_w    .       .
                        .        1       .       high    imm     pc      .       adc     .       ra      pcnext  pc_w    .       .
                        .        2       .       .       .       .       .       .       .       .       .       .       .       if

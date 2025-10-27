@@ -113,45 +113,6 @@ def formatbus(busval):
 
 class MicrocodeSimulation:
 
-	class InstructionDispatcher:
-
-		def dispatch(self, st, instr, argtypes, args):
-
-			#if instr == "ecall":
-			#	st.ecall()
-			#	return True
-
-			argtypes = argtypes.replace('o', 'i')
-
-			if instr not in instrs.keys():
-				return False
-
-			mcaddr, mcargtypes, mcargnames = instrs[instr]
-
-			if mcargtypes != argtypes:
-				return False
-
-			argsdict = {}
-			for name,arg in zip(mcargnames, args):
-				argsdict[name] = arg
-
-			startaddr = mcaddr
-
-			if st.trace:
-				st.env.cycletrace(f"{instr:5} {argtypes:3} {argsdict}")
-
-			traceprefix = ""
-
-			while True:
-				if st.trace:
-					traceprefix = f"${mcaddr:02X} : {mcaddr-startaddr}"
-				if not st.cycle(microcode[mcaddr], argsdict, traceprefix):
-					break
-				mcaddr += 1
-
-			return True
-
-
 	class State:
 
 		def __init__(self, env, trace):
@@ -165,6 +126,20 @@ class MicrocodeSimulation:
 			self.mepc = [ 0, 0 ]
 			self.mstatus_mie = 0
 			self.mstatus_mpie = 0
+
+			self.instr = [ 0, 0 ]
+			self.nextinstr = [ 0, 0 ]
+
+			self.startaddr = 0
+			self.mcaddr = 0
+
+			self.argsdict = {}
+
+			self.irq = False
+
+
+		def setirq(self, value):
+			self.irq = value
 
 		def setreg(self, num, value):
 			assert num >= 1 and num <= len(self.regs[0])
@@ -200,9 +175,24 @@ class MicrocodeSimulation:
 		def unimp(self): self.env.unimp()
 		def ecall(self): self.env.ecall()
 
-		def cycle(self, mc, argsdict, tracestr):
+		def cycle(self):
+
+			argsdict = self.argsdict
+
+			mc = microcode[self.mcaddr]
+			cycle = self.mcaddr-self.startaddr
 
 			hilo = 1 if mc.high else 0			
+
+			memvalue = None
+			memreadnotwrite = True
+
+			if mc.ifetch:
+				assert not mc.mem_w
+				assert mc.bus_b != "mem"
+				memaddr = self.pcnext[0] + (self.pcnext[1] << 8) | (cycle & 1)
+			else:
+				memaddr = self.mar[0] + (self.mar[1] << 8) | hilo
 
 			if "imm" in mc.bus_a:
 				value = argsdict[mc.bus_a]
@@ -219,8 +209,8 @@ class MicrocodeSimulation:
 				bus_a = None
 
 			if mc.bus_b == "mem":
-				addr = ((self.mar[1] << 8) + self.mar[0]) | hilo
-				bus_b = self.memreadb(addr)
+				memvalue = self.memreadb(memaddr)
+				bus_b = memvalue
 			elif mc.bus_b == "regs":
 				if mc.reg_r == "mepc":
 					bus_b = self.mepc[hilo]
@@ -292,9 +282,13 @@ class MicrocodeSimulation:
 				self.pcnext[hilo] = bus_c & (hilo-2)
 
 			if mc.mem_w:
-				addr = ((self.mar[1] << 8) + self.mar[0]) | hilo
-				self.memwriteb(addr, bus_b) # Note - not bus_c
+				memvalue = bus_b   # Note - not bus_c
+				memreadnotwrite = False
+				self.memwriteb(memaddr, memvalue)
 
+			if mc.ifetch:
+				memvalue = self.memreadb(memaddr)
+				self.nextinstr[cycle & 1] = memvalue
 
 			if self.trace:
 			    pcstr = format16(self.pc[0], self.pc[1])
@@ -302,16 +296,46 @@ class MicrocodeSimulation:
 			    regsstr = ' '.join([format16(self.regs[0][i], self.regs[1][i]) + (" " if i==3 else "") for i in range(8)])
 			    busstr = f"a:{formatbus(bus_a)} b:{formatbus(bus_b)} c:{formatbus(bus_c)}"
 
-			    self.env.cycletrace(tracestr + f"  pc:{pcstr}  mar:{marstr}  regs: {regsstr}   {busstr}  {mc}")
+			    self.env.cycletrace(f"${self.mcaddr:02X} : {cycle}  pc:{pcstr}  mar:{marstr}  regs: {regsstr}   {busstr}  {mc}")
 
+			if memvalue is not None:
+				self.env.memtrace(memaddr, memvalue, memreadnotwrite)
 
-			if mc.endz and bus_c == 0:
-				return False
+			self.mcaddr += 1
 
-			if mc.endnz and bus_c != 0:
+			if (mc.endz and bus_c == 0) or (mc.endnz and bus_c != 0):
+				self.nextinstruction()
 				return False
 
 			return True
+
+
+		def nextinstruction(self):
+
+			self.advancepc()
+
+			self.instr = self.nextinstr[:]
+
+			if self.irq and self.mstatus_mie:
+				instr,argtypes,args = "*irq","",[]
+			else:
+				opcode = self.instr[0] + (self.instr[1] << 8)
+				instr,argtypes,args = self.env.encoding.decode(opcode)
+
+			argtypes = argtypes.replace('o', 'i')
+
+			if instr not in instrs.keys():
+				self.env.exception(2, self.getpc(), f"Unsupported instruction '{instr}' with argtypes '{argtypes}'")
+
+			self.startaddr, mcargtypes, mcargnames = instrs[instr]
+
+			assert mcargtypes == argtypes, f"mcargtypes not equal to argtypes: {mcargtypes} != {argtypes}"
+
+			self.argsdict = {}
+			for name,arg in zip(mcargnames, args):
+				self.argsdict[name] = arg
+
+			self.mcaddr = self.startaddr
 
 
 if __name__ == "__main__":
