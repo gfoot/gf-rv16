@@ -1,255 +1,284 @@
-mnemonic               .	cycle	last	high	bus_a	bus_b	reg_r	aluop	mar_w	reg_w	reg_win	pc_w	mem_w	
-                       .													
-JAL   ra, imm          . 	0		low	imm	pc		ad0		ra	pcnext	pc_w		
-                       .	1	1	high	imm	pc		adc		ra	pcnext	pc_w		
-                       .													
-J     imm              .	0		low	imm	pc		ad0				pc_w		
-                       .	1	1	high	imm	pc		adc				pc_w		
-                       .													
-JALR  rs1, imm         .	0		low	imm	regs	rs1	ad0		ra	pcnext	pc_w		
-                       .	1	1	high	imm	regs	rs1	adc		ra	pcnext	pc_w		
-                       .													
-JR    rs1, imm         .	0		low	imm	regs	rs1	ad0				pc_w		
-                       .	1	1	high	imm	regs	rs1	adc				pc_w		
-                       .													
-BEQZ  rs1, imm         .	0		low	0x00	regs	rs1	xor	mar_w					
-                       .	1	nz	high	mar	regs	rs1	or						
-                       .	2		low	imm	pc		ad0				pc_w		
-                       .	3	1	high	imm	pc		adc				pc_w		
-                       .													
-BNEZ  rs1, imm         .	0		low	0x00	regs	rs1	xor	mar_w					
-                       .	1	z	high	mar	regs	rs1	or						
-                       .	2		low	imm	pc		ad0				pc_w		
-                       .	3	1	high	imm	pc		adc				pc_w		
-                       .													
-BLTZ  rs1, imm         .	0		high	0x00	regs	rs1	xor	mar_w					
-                       .	1	z	high	0x00	marn		or						
-                       .	2		low	imm	pc		ad0				pc_w		
-                       .	3	1	high	imm	pc		adc				pc_w		
-                       .													
-BGEZ  rs1, imm         .	0		high	0x00	regs	rs1	xor	mar_w					
-                       .	1	nz	high	0x00	marn		or						
-                       .	2		low	imm	pc		ad0				pc_w		
-                       .	3	1	high	imm	pc		adc				pc_w		
-                       .													
-BEQ   rs1, rs2, imm    .	0		low	0x00	regs	rs2	xor	mar_w			
-                       .	1	nz	low	mar	regs	rs1	xor     
-                       .	2		high	0x00	regs	rs2	xor	mar_w					
-                       .	3	nz	high	mar	regs	rs1	xor	
-                       .	4		low	imm	pc		ad0				pc_w		
-                       .	5	1	high	imm	pc		adc				pc_w		
-                       .													
-BNE   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
-                       .	1		low	mar	regs	rs1	xor	mar_w
-                       .	2		low	mar	marn		ad0
-                       .	3		high	0xff	regs	rs2	xor	mar_w					
-                       .	4		high	mar	regs	rs1	xor	mar_w
-                       .	5		high	mar	zero		adc
-                       .	6	z	high	0xff	zero		adc
-                       .	7		low	imm	pc		ad0				pc_w		
-                       .	8	1	high	imm	pc		adc				pc_w		
-                       .													
-BLT   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
-                       .	1		low	mar	regs	rs1	ad1     			
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3		high	mar	regs	rs1	adc	mar_w					
-                       .	4	z	low	0x00	marn		ad0	
-                       .	5		low	imm	pc		ad0				pc_w		
-                       .	6	1	high	imm	pc		adc				pc_w		
-                       .													
-BGE   rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
-                       .	1		low	mar	regs	rs1	ad1     			
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3		high	mar	regs	rs1	adc	mar_w					
-                       .	4	nz	low	0x00	marn		ad0	
-                       .	5		low	imm	pc		ad0				pc_w		
-                       .	6	1	high	imm	pc		adc				pc_w
-                       .													
-BLTU  rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
-                       .	1		low	mar	regs	rs1	ad1     			
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3		high	mar	regs	rs1	adc						
-                       .	4	nz	low	0x00	zero		adc	
-                       .	5		low	imm	pc		ad0				pc_w		
-                       .	6	1	high	imm	pc		adc				pc_w		
-                       .													
-BGEU  rs1, rs2, imm    .	0		low	0xff	regs	rs2	xor	mar_w			
-                       .	1		low	mar	regs	rs1	ad1     			
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3		high	mar	regs	rs1	adc						
-                       .	4	z	low	0x00	zero		adc	
-                       .	5		low	imm	pc		ad0				pc_w		
-                       .	6	1	high	imm	pc		adc				pc_w		
-                       .													
-LB    rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
-                       .	1		high	imm	regs	rs1	adc	mar_w					
-                       .	2		low	0x00	mem		xor	mar_w	rd	alu			
-                       .	3	1	high	marsx	zero		ad0		rd	alu			
-                       .													
-LBU   rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
-                       .	1		high	imm	regs	rs1	adc	mar_w	rd	zero			
-                       .	2	1	low	0x00	mem		or		rd	alu			
-                       .													
-LW    rd, rs1, imm     .	0		low	imm	regs	rs1	ad0	mar_w					
-                       .	1		high	imm	regs	rs1	adc	mar_w					
-                       .	2		low	0x00	mem		or		rd	alu			
-                       .	3	1	high	0x00	mem		or		rd	alu			
-                       .													
-SB    rs2, rs1, imm    .	0		low	imm	regs	rs1	ad0	mar_w					
-                       .	1		high	imm	regs	rs1	adc	mar_w					
-                       .	2	1	low	0x00	regs	rs2	or					mem_w	
-                       .													
-SW    rs2, rs1, imm    .	0		low	imm	regs	rs1	ad0	mar_w					
-                       .	1		high	imm	regs	rs1	adc	mar_w					
-                       .	2		low	0x00	regs	rs2	or					mem_w	
-                       .	3	1	high	0x00	regs	rs2	or					mem_w	
-                       .													
-LI    rd, imm          .	0		low	imm	zero		ad0		rd	alu
-                       .	1	1	high	imm	zero		adc		rd	alu
+mnemonic               .        cycle   last    high    bus_a   bus_b   reg_r   aluop   mar_w   reg_w   reg_win pc_w    mem_w   if
+                       .       
+JAL   ra, imm          .        0       .       low     imm     pc      .       ad0     .       ra      pcnext  pc_w    .       .
+                       .        1       .       high    imm     pc      .       adc     .       ra      pcnext  pc_w    .       .
+                       .        2       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        3       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+J     imm              .        0       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        1       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        2       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        3       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+JALR  rs1, imm         .        0       .       low     imm     regs    rs1     ad0     .       ra      pcnext  pc_w    .       .
+                       .        1       .       high    imm     regs    rs1     adc     .       ra      pcnext  pc_w    .       .
+                       .        2       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        3       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+JR    rs1, imm         .        0       .       low     imm     regs    rs1     ad0     .       .       .       pc_w    .       .
+                       .        1       .       high    imm     regs    rs1     adc     .       .       .       pc_w    .       .
+                       .        2       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        3       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BEQZ  rs1, imm         .        0       .       low     0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        1       nz      high    mar     regs    rs1     or      .       .       .       .       .       if
+                       .        2       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        3       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        4       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        5       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BNEZ  rs1, imm         .        0       .       low     0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        1       z       high    mar     regs    rs1     or      .       .       .       .       .       if
+                       .        2       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        3       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        4       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        5       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BLTZ  rs1, imm         .        0       .       high    0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        1       z       high    0x00    marn    .       or      .       .       .       .       .       if
+                       .        2       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        3       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        4       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        5       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BGEZ  rs1, imm         .        0       .       high    0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        1       nz      high    0x00    marn    .       or      .       .       .       .       .       if
+                       .        2       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        3       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        4       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        5       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BEQ   rs1, rs2, imm    .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       nz      low     mar     regs    rs1     xor     .       .       .       .       .       if
+                       .        2       .       high    0x00    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       nz      high    mar     regs    rs1     xor     .       .       .       .       .       .
+                       .        4       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        5       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        6       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        7       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BNE   rs1, rs2, imm    .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       low     mar     marn    .       ad0     .       .       .       .       .       .
+                       .        3       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        4       .       high    mar     regs    rs1     xor     mar_w   .       .       .       .       .
+                       .        5       .       high    mar     zero    .       adc     .       .       .       .       .       .
+                       .        6       z       high    0xff    zero    .       adc     .       .       .       .       .       .
+                       .        7       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        8       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        9       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        10      1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BLT   rs1, rs2, imm    .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       .       .       .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       .       high    mar     regs    rs1     adc     mar_w   .       .       .       .       .
+                       .        4       z       low     0x00    marn    .       ad0     .       .       .       .       .       .
+                       .        5       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        6       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        7       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        8       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BGE   rs1, rs2, imm    .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       .       .       .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       .       high    mar     regs    rs1     adc     mar_w   .       .       .       .       .
+                       .        4       nz      low     0x00    marn    .       ad0     .       .       .       .       .       .
+                       .        5       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        6       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        7       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        8       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BLTU  rs1, rs2, imm    .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       .       .       .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       .       high    mar     regs    rs1     adc     .       .       .       .       .       .
+                       .        4       nz      low     0x00    zero    .       adc     .       .       .       .       .       .
+                       .        5       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        6       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        7       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        8       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+BGEU  rs1, rs2, imm    .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       .       .       .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       .       high    mar     regs    rs1     adc     .       .       .       .       .       .
+                       .        4       z       low     0x00    zero    .       adc     .       .       .       .       .       .
+                       .        5       .       low     imm     pc      .       ad0     .       .       .       pc_w    .       .
+                       .        6       .       high    imm     pc      .       adc     .       .       .       pc_w    .       .
+                       .        7       .       .       .       .       .       .       .       .       .       .       .       if
+                       .        8       1       .       .       .       .       .       .       .       .       .       .       if
+                       .       
+LB    rd, rs1, imm     .        0       .       low     imm     regs    rs1     ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    imm     regs    rs1     adc     mar_w   .       .       .       .       if
+                       .        2       .       low     0x00    mem     .       xor     mar_w   rd      alu     .       .       .
+                       .        3       1       high    marsx   zero    .       ad0     .       rd      alu     .       .       .
+                       .       
+LBU   rd, rs1, imm     .        0       .       low     imm     regs    rs1     ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    imm     regs    rs1     adc     mar_w   rd      zero    .       .       if
+                       .        2       1       low     0x00    mem     .       or      .       rd      alu     .       .       .
+                       .       
+LW    rd, rs1, imm     .        0       .       low     imm     regs    rs1     ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    imm     regs    rs1     adc     mar_w   .       .       .       .       if
+                       .        2       .       low     0x00    mem     .       or      .       rd      alu     .       .       .
+                       .        3       1       high    0x00    mem     .       or      .       rd      alu     .       .       .
+                       .       
+SB    rs2, rs1, imm    .        0       .       low     imm     regs    rs1     ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    imm     regs    rs1     adc     mar_w   .       .       .       .       if
+                       .        2       1       low     0x00    regs    rs2     or      .       .       .       .       mem_w   .
+                       .       
+SW    rs2, rs1, imm    .        0       .       low     imm     regs    rs1     ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    imm     regs    rs1     adc     mar_w   .       .       .       .       if
+                       .        2       .       low     0x00    regs    rs2     or      .       .       .       .       mem_w   .
+                       .        3       1       high    0x00    regs    rs2     or      .       .       .       .       mem_w   .
+                       .       
+LI    rd, imm          .        0       .       low     imm     zero    .       ad0     .       rd      alu     .       .       if
+                       .        1       1       high    imm     zero    .       adc     .       rd      alu     .       .       if
                        .
-LUI   rd, imm          .	0		low	imm	zero		ad0		rd	alu			
-                       .	1	1	high	imm	zero		adc		rd	alu			
-                       .													
-AUIPC rd, imm          .	0		low	imm	pc		ad0		rd	alu			
-                       .	1	1	high	imm	pc		adc		rd	alu			
-                       .													
-ADDI8 rd, imm          .	0		low	imm	regs	rd	ad0		rd	alu			
-                       .	1	1	high	imm	regs	rd	adc		rd	alu			
-                       .													
-ADDI  rd, rs1, imm     .	0		low	imm	regs	rs1	ad0		rd	alu			
-                       .	1	1	high	imm	regs	rs1	adc		rd	alu			
-                       .													
-ANDI  rd, rs1, imm     .	0		low	imm	regs	rs1	and		rd	alu			
-                       .	1	1	high	imm	regs	rs1	and		rd	alu			
-                       .													
-ORI   rd, rs1, imm     .	0		low	imm	regs	rs1	or		rd	alu			
-                       .	1	1	high	imm	regs	rs1	or		rd	alu			
-                       .													
-XORI  rd, rs1, imm     .	0		low	imm	regs	rs1	xor		rd	alu			
-                       .	1	1	high	imm	regs	rs1	xor		rd	alu			
-                       .													
-SRLI  rd, rs1, uimm    .	0		low	uimm	zero		ad0	mar_w					
-                       .	1		high	0x00	regs	rs1	xor	mar_w					
-                       .	2		low	mar	regs	rs1	srl		rd	alu			
-                       .	3	1	high	0x00	regs	rs1	srl		rd	alu			
-                       .													
-SRAI  rd, rs1, uimm    .	0		low	uimm	zero		ad0	mar_w					
-                       .	1		high	0x00	regs	rs1	xor	mar_w					
-                       .	2		low	mar	regs	rs1	sra		rd	alu			
-                       .	3	1	high	marsx	regs	rs1	sra		rd	alu			
-                       .													
-SLLI  rd, rs1, uimm    .	0		low	uimm	zero		ad0	mar_w					
-                       .	1		low	0x00	regs	rs1	xor	mar_w					
-                       .	2		high	mar	regs	rs1	sll		rd	alu			
-                       .	3	1	low	0x00	regs	rs1	sll		rd	alu			
-                       .													
-SLTI  rd, rs1, imm     .	0		low	imm	regs	rs1	ad1						
-                       .	1		high	imm	regs	rs1	adc	mar_w	rd	zero			
-                       .	2	1	low	0x00	marn		ad0		rd	alu			
-                       .													
-SLTIU rd, rs1, uimm    .	0		low	uimm	regs	rs1	ad1						
-                       .	1		high	0x00	regs	rs1	adc		rd	zero			
-                       .	2	1	low	0x00	zero		adc		rd	alu			
-                       .													
-ADD   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	ad0		rd	alu			
-                       .	2		high	0x00	regs	rs2	xor	mar_w					
-                       .	3	1	high	mar	regs	rs1	adc		rd	alu			
-                       .													
-SUB   rd, rs1, rs2     .	0		low	0xff	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	ad1		rd	alu			
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3	1	high	mar	regs	rs1	adc		rd	alu			
-                       .													
-AND   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	and		rd	alu			
-                       .	2		high	0x00	regs	rs2	xor	mar_w					
-                       .	3	1	high	mar	regs	rs1	and		rd	alu			
-                       .													
-OR    rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	or		rd	alu			
-                       .	2		high	0x00	regs	rs2	xor	mar_w					
-                       .	3	1	high	mar	regs	rs1	or		rd	alu			
-                       .													
-XOR   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	xor		rd	alu			
-                       .	2		high	0x00	regs	rs2	xor	mar_w					
-                       .	3	1	high	mar	regs	rs1	xor		rd	alu			
-                       .													
-SLT   rd, rs1, rs2     .	0		low	0xff	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	ad1						
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3		high	mar	regs	rs1	adc	mar_w	rd	zero			
-                       .	4	1	low	0x00	marn		ad0		rd	alu			
-                       .													
-SLTU  rd, rs1, rs2     .	0		low	0xff	regs	rs2	xor	mar_w					
-                       .	1		low	mar	regs	rs1	ad1						
-                       .	2		high	0xff	regs	rs2	xor	mar_w					
-                       .	3		high	mar	regs	rs1	adc		rd	zero			
-                       .	4		low	0x00	zero		adc		rd	alu			
-                       .	5	1	low	0x01	regs	rd	xor		rd	alu			
-                       .													
-SRL   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		high	0x00	regs	rs1	xor	mar_w					
-                       .	2		low	mar	regs	rs1	srl		rd	alu			
-                       .	3	1	high	0x00	regs	rs1	srl		rd	alu			
-                       .													
-SRA   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		high	0x00	regs	rs1	xor	mar_w					
-                       .	2		low	mar	regs	rs1	sra		rd	alu			
-                       .	3	1	high	marsx	regs	rs1	sra		rd	alu			
-                       .													
-SLL   rd, rs1, rs2     .	0		low	0x00	regs	rs2	xor	mar_w					
-                       .	1		low	0x00	regs	rs1	xor	mar_w					
-                       .	2		high	mar	regs	rs1	sll		rd	alu			
-                       .	3	1	low	0x00	regs	rs1	sll		rd	alu			
-                       .													
-SNEZ  rd, rs1          .	0		low	0xff	regs	rs1	ad0						
-                       .	1		high	0xff	regs	rs1	adc		rd	zero			
-                       .	2	1	low	0x00	zero		adc		rd	alu			
-                       .													
-SGTZ  rd, rs1          .	0		low	0xff	regs	rs1	ad0						
-                       .	1		high	0x7f	regs	rs1	adc		rd	zero			
-                       .	2	1	low	0x00	zero		adc		rd	alu			
-                       .													
-NEG   rd, rs1          .	0		low	0xff	regs	rs1	xor	mar_w			
-                       .	1		low	mar	zero		ad1		rd	alu	
-                       .	2		high	0xff	regs	rs1	xor	mar_w			
-                       .	3	1	high	mar	zero		adc		rd	alu	
-                       .													
-MRET  uimm             .	0		low	uimm	regs	mepc	ad0				pc_w		
-                       .	1		high	0x00	regs	mepc	adc				pc_w		
-                       .	2		low	0x00	regs	mstmpie	ad0		mstmie	alu
-                       .	3	1	low	0x01	zero		ad0		mstmpie	alu
-                       .													
-ECALL                  .	0		low	0x02	zero		ad0		mepc	pc	pc_w		
-                       .	1		high	0x00	zero		adc		mepc	pc	pc_w		
-                       .	2		low	0x00	regs	mstmie	ad0		mstmpie	alu
-                       .	3	1	low	0x00	zero		ad0		mstmie	alu
-                       .													
-*IRQ                   .	0		low	0x04	zero		ad0		mepc	pc	pc_w		
-                       .	1		high	0x00	zero		adc		mepc	pc	pc_w		
-                       .	2		low	0x00	regs	mstmie	ad0		mstmpie	alu
-                       .	3	1	low	0x00	zero		ad0		mstmie	alu
-                       .													
-SETMIE rd              .	0		low	0x00	regs	mstatus	ad0		rd	alu
-                       .	1		high	0x00	zero		ad0		rd	zero
-                       .	2	1	low	0x01	zero		ad0		mstmie	alu
-                       .													
-CLRMIE rd              .	0		low	0x00	regs	mstatus	ad0		rd	alu
-                       .	1		high	0x00	zero		ad0		rd	zero
-                       .	2	1	low	0x00	zero		ad0		mstmie	zero
-                       .													
-RDMEPC rd              .	0		low	0x00	regs	mepc	ad0		rd	alu
-                       .	1	1	high	0x00	regs	mepc	ad0		rd	alu
-                       .													
-WRMEPC rs1             .	0		low	0x00	regs	rs1	ad0		mepc	alu
-                       .	1	1	high	0x00	regs	rs1	ad0		mepc	alu
-                       .													
-CSRRSI rd, csr, imm    .	0		low	0x00	regs	csr	or		rd	alu
-                       .	1		high	0x00	zero		or		rd	zero
-                       .	2	1	low	imm	regs	csr	or		csr	alu
-                       .													
-CSRRCI rd, csr, imm    .	0		low	0x00	regs	csr	or		rd	alu
-                       .	1		high	0x00	zero		or		rd	zero
-                       .	2	1	low	imm	regs	csr	and		csr	alu
+LUI   rd, imm          .        0       .       low     imm     zero    .       ad0     .       rd      alu     .       .       if
+                       .        1       1       high    imm     zero    .       adc     .       rd      alu     .       .       if
+                       .       
+AUIPC rd, imm          .        0       .       low     imm     pc      .       ad0     .       rd      alu     .       .       if
+                       .        1       1       high    imm     pc      .       adc     .       rd      alu     .       .       if
+                       .       
+ADDI8 rd, imm          .        0       .       low     imm     regs    rd      ad0     .       rd      alu     .       .       if
+                       .        1       1       high    imm     regs    rd      adc     .       rd      alu     .       .       if
+                       .       
+ADDI  rd, rs1, imm     .        0       .       low     imm     regs    rs1     ad0     .       rd      alu     .       .       if
+                       .        1       1       high    imm     regs    rs1     adc     .       rd      alu     .       .       if
+                       .       
+ANDI  rd, rs1, imm     .        0       .       low     imm     regs    rs1     and     .       rd      alu     .       .       if
+                       .        1       1       high    imm     regs    rs1     and     .       rd      alu     .       .       if
+                       .       
+ORI   rd, rs1, imm     .        0       .       low     imm     regs    rs1     or      .       rd      alu     .       .       if
+                       .        1       1       high    imm     regs    rs1     or      .       rd      alu     .       .       if
+                       .       
+XORI  rd, rs1, imm     .        0       .       low     imm     regs    rs1     xor     .       rd      alu     .       .       if
+                       .        1       1       high    imm     regs    rs1     xor     .       rd      alu     .       .       if
+                       .       
+SRLI  rd, rs1, uimm    .        0       .       low     uimm    zero    .       ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       low     mar     regs    rs1     srl     .       rd      alu     .       .       .
+                       .        3       1       high    0x00    regs    rs1     srl     .       rd      alu     .       .       .
+                       .       
+SRAI  rd, rs1, uimm    .        0       .       low     uimm    zero    .       ad0     mar_w   .       .       .       .       if
+                       .        1       .       high    0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       low     mar     regs    rs1     sra     .       rd      alu     .       .       .
+                       .        3       1       high    marsx   regs    rs1     sra     .       rd      alu     .       .       .
+                       .       
+SLLI  rd, rs1, uimm    .        0       .       low     uimm    zero    .       ad0     mar_w   .       .       .       .       if
+                       .        1       .       low     0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       high    mar     regs    rs1     sll     .       rd      alu     .       .       .
+                       .        3       1       low     0x00    regs    rs1     sll     .       rd      alu     .       .       .
+                       .       
+SLTI  rd, rs1, imm     .        0       .       low     imm     regs    rs1     ad1     .       .       .       .       .       if
+                       .        1       .       high    imm     regs    rs1     adc     mar_w   rd      zero    .       .       if
+                       .        2       1       low     0x00    marn    .       ad0     .       rd      alu     .       .       .
+                       .       
+SLTIU rd, rs1, uimm    .        0       .       low     uimm    regs    rs1     ad1     .       .       .       .       .       if
+                       .        1       .       high    0x00    regs    rs1     adc     .       rd      zero    .       .       if
+                       .        2       1       low     0x00    zero    .       adc     .       rd      alu     .       .       .
+                       .       
+ADD   rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad0     .       rd      alu     .       .       if
+                       .        2       .       high    0x00    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       1       high    mar     regs    rs1     adc     .       rd      alu     .       .       .
+                       .       
+SUB   rd, rs1, rs2     .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       rd      alu     .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       1       high    mar     regs    rs1     adc     .       rd      alu     .       .       .
+                       .       
+AND   rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     and     .       rd      alu     .       .       if
+                       .        2       .       high    0x00    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       1       high    mar     regs    rs1     and     .       rd      alu     .       .       .
+                       .       
+OR    rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     or      .       rd      alu     .       .       if
+                       .        2       .       high    0x00    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       1       high    mar     regs    rs1     or      .       rd      alu     .       .       .
+                       .       
+XOR   rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     xor     .       rd      alu     .       .       if
+                       .        2       .       high    0x00    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       1       high    mar     regs    rs1     xor     .       rd      alu     .       .       .
+                       .       
+SLT   rd, rs1, rs2     .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       .       .       .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       .       high    mar     regs    rs1     adc     mar_w   rd      zero    .       .       .
+                       .        4       1       low     0x00    marn    .       ad0     .       rd      alu     .       .       .
+                       .       
+SLTU  rd, rs1, rs2     .        0       .       low     0xff    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     regs    rs1     ad1     .       .       .       .       .       if
+                       .        2       .       high    0xff    regs    rs2     xor     mar_w   .       .       .       .       .
+                       .        3       .       high    mar     regs    rs1     adc     .       rd      zero    .       .       .
+                       .        4       .       low     0x00    zero    .       adc     .       rd      alu     .       .       .
+                       .        5       1       low     0x01    regs    rd      xor     .       rd      alu     .       .       .
+                       .       
+SRL   rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       high    0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       low     mar     regs    rs1     srl     .       rd      alu     .       .       .
+                       .        3       1       high    0x00    regs    rs1     srl     .       rd      alu     .       .       .
+                       .       
+SRA   rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       high    0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       low     mar     regs    rs1     sra     .       rd      alu     .       .       .
+                       .        3       1       high    marsx   regs    rs1     sra     .       rd      alu     .       .       .
+                       .       
+SLL   rd, rs1, rs2     .        0       .       low     0x00    regs    rs2     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     0x00    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        2       .       high    mar     regs    rs1     sll     .       rd      alu     .       .       .
+                       .        3       1       low     0x00    regs    rs1     sll     .       rd      alu     .       .       .
+                       .       
+SNEZ  rd, rs1          .        0       .       low     0xff    regs    rs1     ad0     .       .       .       .       .       if
+                       .        1       .       high    0xff    regs    rs1     adc     .       rd      zero    .       .       if
+                       .        2       1       low     0x00    zero    .       adc     .       rd      alu     .       .       .
+                       .       
+SGTZ  rd, rs1          .        0       .       low     0xff    regs    rs1     ad0     .       .       .       .       .       if
+                       .        1       .       high    0x7f    regs    rs1     adc     .       rd      zero    .       .       if
+                       .        2       1       low     0x00    zero    .       adc     .       rd      alu     .       .       .
+                       .       
+NEG   rd, rs1          .        0       .       low     0xff    regs    rs1     xor     mar_w   .       .       .       .       if
+                       .        1       .       low     mar     zero    .       ad1     .       rd      alu     .       .       if
+                       .        2       .       high    0xff    regs    rs1     xor     mar_w   .       .       .       .       .
+                       .        3       1       high    mar     zero    .       adc     .       rd      alu     .       .       .
+                       .       
+MRET  uimm             .        0       .       low     uimm    regs    mepc    ad0     .       .       .       pc_w    .       .
+                       .        1       .       high    0x00    regs    mepc    adc     .       .       .       pc_w    .       .
+                       .        2       .       low     0x00    regs    mstmpie ad0     .       mstmie  alu     .       .       if
+                       .        3       1       low     0x01    zero    .       ad0     .       mstmpie alu     .       .       if
+                       .       
+ECALL                  .        0       .       low     0x02    zero    .       ad0     .       mepc    pc      pc_w    .       .
+                       .        1       .       high    0x00    zero    .       adc     .       mepc    pc      pc_w    .       .
+                       .        2       .       low     0x00    regs    mstmie  ad0     .       mstmpie alu     .       .       if
+                       .        3       1       low     0x00    zero    .       ad0     .       mstmie  alu     .       .       if
+                       .       
+*IRQ                   .        0       .       low     0x04    zero    .       ad0     .       mepc    pc      pc_w    .       .
+                       .        1       .       high    0x00    zero    .       adc     .       mepc    pc      pc_w    .       .
+                       .        2       .       low     0x00    regs    mstmie  ad0     .       mstmpie alu     .       .       if
+                       .        3       1       low     0x00    zero    .       ad0     .       mstmie  alu     .       .       if
+                       .       
+SETMIE rd              .        0       .       low     0x00    regs    mstatus ad0     .       rd      alu     .       .       if
+                       .        1       .       high    0x00    zero    .       ad0     .       rd      zero    .       .       if
+                       .        2       1       low     0x01    zero    .       ad0     .       mstmie  alu     .       .       .
+                       .       
+CLRMIE rd              .        0       .       low     0x00    regs    mstatus ad0     .       rd      alu     .       .       if
+                       .        1       .       high    0x00    zero    .       ad0     .       rd      zero    .       .       if
+                       .        2       1       low     0x00    zero    .       ad0     .       mstmie  zero    .       .       .
+                       .       
+RDMEPC rd              .        0       .       low     0x00    regs    mepc    ad0     .       rd      alu     .       .       if
+                       .        1       1       high    0x00    regs    mepc    ad0     .       rd      alu     .       .       if
+                       .       
+WRMEPC rs1             .        0       .       low     0x00    regs    rs1     ad0     .       mepc    alu     .       .       if
+                       .        1       1       high    0x00    regs    rs1     ad0     .       mepc    alu     .       .       if
+                       .       
+CSRRSI rd, csr, imm    .        0       .       low     0x00    regs    csr     or      .       rd      alu     .       .       if
+                       .        1       .       high    0x00    zero    .       or      .       rd      zero    .       .       if
+                       .        2       1       low     imm     regs    csr     or      .       csr     alu     .       .       .
+                       .       
+CSRRCI rd, csr, imm    .        0       .       low     0x00    regs    csr     or      .       rd      alu     .       .       if
+                       .        1       .       high    0x00    zero    .       or      .       rd      zero    .       .       if
+                       .        2       1       low     imm     regs    csr     and     .       csr     alu     .       .       .
+

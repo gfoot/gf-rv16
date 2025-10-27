@@ -2,7 +2,10 @@ import sys
 
 class MicrocodeEntry:
 	def __init__(self, fields):
-		assert len(fields) == 11
+		assert len(fields) == 12
+
+		fields = [field if field != "." else "" for field in fields]
+
 		self.endz = fields[0] in ("1","z")
 		self.endnz = fields[0] in ("1","nz")
 		self.high = fields[1] == "high"
@@ -15,6 +18,7 @@ class MicrocodeEntry:
 		self.reg_win = fields[8] # Multiplexer
 		self.pc_w = fields[9] == "pc_w"
 		self.mem_w = fields[10] == "mem_w"
+		self.ifetch = fields[11] == "if"
 
 		self.flags = []
 		if self.endz: self.flags.append("endz")
@@ -35,11 +39,24 @@ class MicrocodeEntry:
 		return ' '.join(self.flags)
 
 
+def unpackline(line):
+	if not line.strip() or line.strip() == ".":
+		return []
+
+	assert line[23] == '.'
+	mnem = line[:23].strip()
+	tablerow = line[32:]
+	if len(tablerow) < 13*8:
+		tablerow += " " * (13*8 - len(tablerow))
+	cols = [mnem] + [tablerow[i:i+8].strip() for i in range(0,len(tablerow),8)]
+	return cols
+
+
 with open("doc/microcode.txt") as fp:
-	line = fp.readline().strip().split('\t')
-	assert line[0].startswith("mnemonic")
+	line = unpackline(fp.readline())
+	assert line[0] == "mnemonic"
 	assert line[1] == "cycle"
-	columnnames = ["last","high","bus_a","bus_b","reg_r","aluop","mar_w","reg_w","reg_win","pc_w","mem_w"]
+	columnnames = ["last","high","bus_a","bus_b","reg_r","aluop","mar_w","reg_w","reg_win","pc_w","mem_w","if"]
 	assert line[2:] == columnnames
 	
 	microcode = []
@@ -47,17 +64,20 @@ with open("doc/microcode.txt") as fp:
 	instr = None
 
 	for line in fp.readlines():
-		line = line.strip().split('\t')
+		line = unpackline(line)
 
 		if len(line) < 2 or line[1] == "":
 			if instr:
 				instr = None
 			continue
 
-		if line[0][0] != '.':
-			instr,args = line[0].strip().lower().split(" ",1)
-			if args.endswith("."):
-				args = args[:-1].strip()
+		if line[0].strip():
+
+			instr = line[0].strip().lower()
+			args = ""
+			if " " in instr:
+				instr,args = instr.split(" ",1)
+
 			argtypes = ""
 			if args:
 				args = [arg.strip() for arg in args.split(",")]
