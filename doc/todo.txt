@@ -2,7 +2,6 @@ Some things to do at some point
 
 Priorities:
  * Write more code
- * Accurate instruction-fetch simulation
 
 
 ISA design
@@ -52,15 +51,11 @@ Simulator/debugging
 
  * Make I/O and timer simulation more like 65C51/65C22
 
- * Simulate pipelined instruction fetch as part of microcode simulation
-
  * Simulate IC pins
 
  * Offline debugger
 
  * REPL for simulator (single step, breakpoints, etc)
-
- * Log memory reads and writes in traces
 
 
 Hardware design
