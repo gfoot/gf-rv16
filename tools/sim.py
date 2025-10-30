@@ -6,7 +6,6 @@ from highlevelsimulation import HighLevelSimulation
 from microcodesimulation import MicrocodeSimulation
 from encode import Encoding
 from isaprops import IsaProps
-from nbio import NonBlockingInput
 
 
 MMIO_BASE = 0xfffe
@@ -163,14 +162,19 @@ class Sim:
 		else:
 			return f"${arg:04x}"
 
-	def step(self):
+	def stepcycle(self):
+		if self.stop:
+			return True
 
-		if (ch := self.inp.getchar()) is not None:
-			self.pendinginput = ch & 0xff
+		if self.inp:
+			if (ch := self.inp.getchar()) is not None:
+				self.pendinginput = ch & 0xff
 
 		self.state.setirq(self.pendinginput is not None)
 
-		if not self.state.cycle():
+		endofinstruction = not self.state.cycle()
+
+		if endofinstruction:
 			# Instruction ended
 			value = self.memory[self.state.getpc()//2]
 			instr,argtypes,args = self.encoding.decode(value)
@@ -178,8 +182,12 @@ class Sim:
 			regsfmt = "  ".join([" ".join([f"{self.state.ureg(n+1):04x}" for n in range(m,m+4)]) for m in range(0,8,4)])
 			self.log.trace(f"                {self.state.getpc():04x}  ${value:04x} = {instr:<6}  {argsfmt:<20}   {regsfmt}")
 
-		return not self.stop
+		return endofinstruction
 
+	def step(self):
+		while not self.stepcycle():
+			if self.stop:
+				break
 
 	def backtrace(self):
 		addr = self.state.getpc()
@@ -238,6 +246,8 @@ class Sim:
 
 	def exception(self, index, addr, message):
 
+		self.stop = True
+
 		pc = self.state.getpc()
 		sp = self.state.ureg(2)
 
@@ -285,6 +295,8 @@ class Sim:
 
 
 if __name__ == "__main__":
+
+	from nbio import NonBlockingInput
 
 	filename = None
 	trace = False
@@ -338,8 +350,8 @@ if __name__ == "__main__":
 
 	with NonBlockingInput() as inp:
 		sim = Sim(simulation, mem, log=log, debuginfo=debuginfo, inp=inp);
-		while sim.step():
-			pass
+		while not sim.stop:
+			sim.step()
 
 	if trace:
 		tracefile.close()

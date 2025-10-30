@@ -9,10 +9,14 @@ def format_arg(arg, typ):
 		return props.regname(arg)
 	if typ == "c":
 		return props.csrname(arg)
-	elif arg >= -128 and arg <= 128:
+	
+	arg &= 0xffff
+	if arg >= 0x8000:
+		arg -= 0x10000
+
+	if arg >= -128 and arg <= 128:
 		return f"{arg}"
 	elif arg >= 0:
-		arg &= 0xffff
 		return f"${arg:04X}"
 	else:
 		arg = (-arg) & 0xffff

@@ -168,6 +168,12 @@ class MicrocodeSimulation:
 				self.pcnext[0] &= 0xff
 				self.pcnext[1] = (self.pcnext[1] + 1) & 0xff
 
+		def getmstatus(self):
+			return (self.mstatus_mpie << 7) | (self.mstatus_mie << 3)
+
+		def getmepc(self):
+			return self.mepc[0] + (self.mepc[1] << 8)
+
 		def memreadw(self, addr): return self.env.memreadw(addr)
 		def memreadb(self, addr): return self.env.memreadb(addr)
 		def memwritew(self, addr, value): self.env.memwritew(addr, value)

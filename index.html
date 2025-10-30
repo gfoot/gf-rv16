@@ -1,66 +1,131 @@
+<!DOCTYPE html>
 <html>
 <head>
 <script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js">
 </script>
 <script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js">
 </script>
+
+<style>
+.panel.heading {
+	flex:none;
+}
+
+.panel, .fixedpanel {
+	display:flex;
+	flex-direction:column;
+	margin:8px;
+}
+
+.panel {
+	flex:auto;
+}
+
+.fixedpanel {
+	flex:none;
+}
+
+.buttonpanel {
+	display:flex;
+	flex-direction:row;
+	margin:8px;
+	flex:none;
+	align-items:center;
+}
+
+.buttonpanel button {
+	margin:8px;
+}
+
+#sourcecode {
+	flex:auto;
+}
+
+#outputwindow {
+	flex:1 1 0;
+	overflow:auto;
+}
+
+#registers {
+	flex:none;
+}
+
+#callstack {
+	height:5rem;
+	overflow:auto;
+	flex:none;
+}
+
+#memory {
+	flex:1 1 0;
+	overflow:scroll;
+	padding-right:16px;
+}
+
+</style>
+
 </head>
+
 <body>
-<h1>Experimental web-based interface to GF-RV16 assembler</h1>
-<p>Source code:
-<textarea id="sourcecode" style="width:100%;height:40%"># Enter source code here
-_start:
-	li	a0, 1230
-	li	a1, 48
-	call	gcd
-	ebreak
 
-gcd:
-	sub	a2, a0, a1
-	bnez	a2, 1f
-	ret
-1:
-	bltz	a2, 1f
-	mv	a0, a2
-	j	gcd
-1:
-	neg	a1, a2
-	j	gcd
-</textarea>
-<button id="assemblebutton">Assemble</button>
-<p>Assembler output (listing file):
-<textarea id="assemblerstdout" style="width:100%;height:40%" readonly=true></textarea>
+<h2><a href="https://github.com/gfoot/gf-rv16/">GF-RV16</a> Assembler and Simulator Web Interface</h2>
 
-<script type="text/python" pythonpath="tools">
+<p>GF-RV16 is an experimental 16-bit RISC-V inspired ISA.  See <a href="https://github.com/gfoot/gf-rv16/wiki">GF-RV16 Project Documentation</a> for more information.  This web interface is powered by <a href=https://brython.info/index.html>Brython</a>, which was a pleasure to use, allowing fairly complex Python programs to run in the browser with little-to-no modification.
 
-import sys
+<div class="buttonpanel">
+<span>Assembler:</span>
+<div><button id="assemblebutton">Assemble</button></div>
+<div><button id="disassemblebutton">Disassemble</button></div>
+<span>Simulator:</span>
+<div><button id="startbutton">Reset</button></div>
+<div><button id="stepbutton">Step</button></div>
+<div><button id="runbutton">Run</button></div>
+<div><button id="stopbutton">Stop</button></div>
+</div>
 
-from browser import document, html
+<div style="display:flex;height:80vh">
 
-import assem
+<div style="display:flex;flex-direction:column;flex:1">
 
+<div class="panel">
+<div class="heading">Source code:</div>
+<textarea id="sourcecode"></textarea>
+</div>
 
-class StdoutToDocument:
-	def __init__(self):
-		self.element = document["assemblerstdout"]
+<div class="panel">
+<div class="heading">Output from Assembler, Simulator, etc</div>
+<pre id="outputwindow"></pre>
+</div>
 
-	def write(self, characters):
-		self.element <= characters
+</div>
 
-sys.stdout = StdoutToDocument()
+<div style="display:flex;flex-direction:column;flex:none">
 
-def assemble(ev):
+<div class="fixedpanel">
+<div class="heading">Registers:</div>
+<pre id="registers"></pre>
+</div>
 
-	document["assemblerstdout"].clear()
+<div class="fixedpanel">
+<div class="heading">Callstack:</div>
+<pre id="callstack"></pre>
+</div>
 
-	sourceelement = document["sourcecode"]
-	sourcelines = sourceelement.value.splitlines()
+<div class="panel">
+<div style="flex:none;display:flex">
+	<div class="heading" style="margin-right:20px">Memory:</div>
+	<div style="flex:none">$<input id="memlo" value="0000" style="flex:none;width:50px"/><span style="margin-left:5px;margin-right:5px">-</span>$<input id="memhi" value="0200" style="flex:none;width:50px"/></div>
+</div>
+<pre id="memory">
+----------------------------------------------------------------
+</pre>
+</div>
 
-	assembler = assem.Assembler()
-	result = assembler.assemble("test.s", sys.stdout, sourcelines)
+</div>
 
-document["assemblebutton"].bind("click", assemble)
+</div>
 
+<script type="text/python" src="tools/webinterface.py">
 </script>
 
 </body>
