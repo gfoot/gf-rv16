@@ -1,0 +1,67 @@
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython.min.js">
+</script>
+<script src="https://cdn.jsdelivr.net/npm/brython@3/brython_stdlib.js">
+</script>
+</head>
+<body>
+<h1>Experimental web-based interface to GF-RV16 assembler</h1>
+<p>Source code:
+<textarea id="sourcecode" style="width:100%;height:40%"># Enter source code here
+_start:
+	li	a0, 1230
+	li	a1, 48
+	call	gcd
+	ebreak
+
+gcd:
+	sub	a2, a0, a1
+	bnez	a2, 1f
+	ret
+1:
+	bltz	a2, 1f
+	mv	a0, a2
+	j	gcd
+1:
+	neg	a1, a2
+	j	gcd
+</textarea>
+<button id="assemblebutton">Assemble</button>
+<p>Assembler output (listing file):
+<textarea id="assemblerstdout" style="width:100%;height:40%" readonly=true></textarea>
+
+<script type="text/python" pythonpath="tools">
+
+import sys
+
+from browser import document, html
+
+import assem
+
+
+class StdoutToDocument:
+	def __init__(self):
+		self.element = document["assemblerstdout"]
+
+	def write(self, characters):
+		self.element <= characters
+
+sys.stdout = StdoutToDocument()
+
+def assemble(ev):
+
+	document["assemblerstdout"].clear()
+
+	sourceelement = document["sourcecode"]
+	sourcelines = sourceelement.value.splitlines()
+
+	assembler = assem.Assembler()
+	result = assembler.assemble("test.s", sys.stdout, sourcelines)
+
+document["assemblebutton"].bind("click", assemble)
+
+</script>
+
+</body>
+</html>
