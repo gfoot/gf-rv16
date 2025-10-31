@@ -34,6 +34,8 @@ class Interface:
 
 		self.raf_id = None
 
+		self.memelements = []
+
 	def assemble(self, ev):
 		self.sim = None
 		self.assembled = None
@@ -67,17 +69,19 @@ class Interface:
 
 		log = sim.Log()
 		self.mem = self.assembled[:]
-		self.sim = sim.Sim(sim.MicrocodeSimulation, self.mem, log=log, debuginfo=self.debuginfo, inp=None)
+		self.sim = sim.Sim(sim.MicrocodeSimulation, self.mem, log=log, debuginfo=self.debuginfo, memcallback=self.memcallback)
 		self.update_ui()
+		self.reset_memory_pane()
 
 	def stepsimulation(self, ev):
+		if self.raf_id is not None:
+			cancel_animation_frame(self.raf_id)
 		if not self.sim:
 			self.startsimulation(ev)
 			if not self.sim:
 				return
 
-		self.sim.step()
-		self.update_ui()
+		self.do_stepsimulation()
 
 	def runsimulation(self, ev):
 		if not self.sim:
@@ -90,11 +94,16 @@ class Interface:
 
 		self.raf_id = request_animation_frame(self.runsimulation)
 
-		self.stepsimulation(ev)
+		self.do_stepsimulation()
 
 	def stopsimulation(self, ev):
 		if self.raf_id is not None:
 			cancel_animation_frame(self.raf_id)
+
+	def do_stepsimulation(self):
+		self.mem_clearhighlights()
+		self.sim.step()
+		self.update_ui()
 
 	def update_ui(self):
 		if not self.sim:
@@ -120,35 +129,71 @@ class Interface:
 			
 			document["callstack"] <= f"  {i:3}   {addr:04X}  {symstr}\n"
 
-		document["memory"].clear()
+	def reset_memory_pane(self):
+		docelt = document["memory"]
+
+		docelt.clear()
+		self.memelts = []
 
 		fc = lambda v: chr(v&0xff) if v >= 32 and v < 127 else "."
 
 		try:
-			memlo = int(document["memlo"].value,16)
+			self.memlo = int(document["memlo"].value,16)
 		except ValueError:
-			memlo = 0
+			self.memlo = 0
 
 		try:
-			memhi = int(document["memhi"].value,16)
+			self.memhi = int(document["memhi"].value,16)
 		except ValueError:
-			memhi = 0x200
+			self.memhi = 0x200
 
-		if memhi < (memlo + 0x20):
-			memhi = memlo + 0x20
+		if self.memhi < (self.memlo + 0x20):
+			self.memhi = self.memlo + 0x20
 
 		step = 8
 		mask = (step*2)-1
 
-		memlo &= 0xffff & ~mask
-		memhi = (memhi + mask) & 0xffff & ~mask
+		self.memlo &= 0xffff & ~mask
+		self.memhi = (self.memhi + mask) & 0xffff & ~mask
 
-		for i in range(memlo//2,memhi//2,step):
+		for i in range(self.memlo//2,self.memhi//2,step):
 			addr = 2*i
 			data = self.mem[i:i+step]
 			datastr = " ".join([f"{v:04X}" for v in data])
 			datachars = "".join([f"{fc(v&0xff)}{fc(v>>8)}" for v in data])
-			document["memory"] <= f"{addr:04X}:  {datastr}  {datachars}\n"
+			document["memory"] <= f"{addr:04X}:  "
+
+			for addr in range(2*i, 2*(i+step), 2):
+				v = self.mem[addr//2]
+				eltlo = html.SPAN(f"{v & 0xff:02X}")
+				elthi = html.SPAN(f"{v >> 8:02X}")
+				self.memelts.append(eltlo)
+				self.memelts.append(elthi)
+				docelt <= elthi
+				docelt <= eltlo
+				docelt <= " "
+
+			docelt <= f" {datachars}\n"
+
+		self.memhighlights = set()
+
+	def memcallback(self, addr, value, readnotwrite):
+		if addr < self.memlo or addr >= self.memhi:
+			return
+
+		elt = self.memelts[addr-self.memlo]
+		self.memhighlights.add(elt)
+
+		if readnotwrite:
+			elt.style["backgroundColor"] = "#88ff88"
+		else:
+			elt.style["backgroundColor"] = "#ffcc88"
+			elt.text = f"{value:02X}"
+
+	def mem_clearhighlights(self):
+		for elt in self.memhighlights:
+			elt.style["backgroundColor"] = ""
+		self.memhighlights = set()
 
 
 interface = Interface()

@@ -59,7 +59,7 @@ class Sim:
 			return None,None
 
 
-	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None):
+	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None, memcallback=None):
 		self.state = simulation.State(self, cycletrace)
 		#self.state.setpc(entry)
 		#self.state.advancepc()
@@ -76,6 +76,8 @@ class Sim:
 
 		self.inp = inp
 		self.pendinginput = None
+
+		self.memcallback = memcallback
 
 
 	def unimp(self):
@@ -147,6 +149,8 @@ class Sim:
 
 	def memtrace(self, addr, value, readnotwrite):
 		self.log.trace(f"{'R' if readnotwrite else 'W'}:${addr:04x} {'=>' if readnotwrite else '<='} ${value:02x}")
+		if self.memcallback:
+			self.memcallback(addr, value, readnotwrite)
 
 
 	def cycletrace(self, text):
