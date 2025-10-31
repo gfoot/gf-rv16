@@ -11,7 +11,7 @@
 	flex:none;
 }
 
-.panel, .fixedpanel {
+.panel, .fixedpanel, .horizpanel {
 	display:flex;
 	flex-direction:column;
 	margin:8px;
@@ -23,6 +23,11 @@
 
 .fixedpanel {
 	flex:none;
+}
+
+.horizpanel {
+	flex-direction:row;
+	flex:auto;
 }
 
 .buttonpanel {
@@ -41,25 +46,36 @@
 	flex:auto;
 }
 
+#machinecode {
+	flex:1 1 0;
+	overflow:auto;
+	border:1px solid lightgrey;
+	margin:0px;
+}
+
 #outputwindow {
 	flex:1 1 0;
 	overflow:auto;
+	border:1px solid lightgrey;
 }
 
 #registers {
 	flex:none;
+	border:1px solid lightgrey;
 }
 
 #callstack {
 	height:5rem;
 	overflow:auto;
 	flex:none;
+	border:1px solid lightgrey;
 }
 
 #memory {
 	flex:1 1 0;
 	overflow:scroll;
 	padding-right:16px;
+	border:1px solid lightgrey;
 }
 
 </style>
@@ -87,12 +103,18 @@
 
 <div style="display:flex;flex-direction:column;flex:1">
 
-<div class="panel">
+<div class="horizpanel" style="flex:3">
+<div class="panel" style="flex:1">
 <div class="heading">Source code:</div>
 <textarea id="sourcecode"></textarea>
 </div>
+<div class="panel" style="flex:2">
+<div class="heading">Machine code:</div>
+<pre id="machinecode"></pre>
+</div>
+</div>
 
-<div class="panel">
+<div class="panel" style="flex:1">
 <div class="heading">Output from Assembler, Simulator, etc</div>
 <pre id="outputwindow"></pre>
 </div>

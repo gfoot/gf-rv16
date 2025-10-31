@@ -7,6 +7,7 @@ import parse
 import disassem
 import isaprops
 
+from debuginfo import DebugInfoBuilder
 from encode import Encoding
 
 
@@ -111,6 +112,7 @@ class Assembler:
 				self.log_listing(self.pos, encodedvalue, f"    {instr:<6} {argsstr:<20}   {'#' if comment else ''} {comment}")
 
 		if self.assemblypass == self.lastpass:
+			self.debuginfobuilder.set_source_location(self.pos, self.filename, self.linenumber+1)
 			if instr != "data":
 				argsstr = format_args(args, argtypes)
 				if self.expectations:
@@ -316,6 +318,7 @@ class Assembler:
 
 				if not name.startswith("."):
 					self.currentsymbol = name
+					self.debuginfobuilder.add_symbol(name, self.pos)
 
 				if self.assemblypass == self.lastpass:
 					self.log_listing(self.pos, None, f"{name}:")
@@ -493,6 +496,8 @@ class Assembler:
 			# canonical syntax for %pcrel_lo
 			self.relocs = {}
 
+			self.debuginfobuilder = DebugInfoBuilder()
+
 			self.expectations = []
 
 			self.convergelabels = self.assemblypass >= 4
@@ -524,12 +529,7 @@ class Assembler:
 
 
 	def builddebuginfo(self):
-		debuginfo = {}
-		for k,v in self.labels.items():
-			if k == "_bottom" or k == "_top":
-				continue
-			debuginfo[k] = v
-		return debuginfo
+		return self.debuginfobuilder.build()
 
 
 	def filtered_emit(self, instr, argtypes, value_args, comment, changed = False):

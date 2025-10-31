@@ -47,18 +47,6 @@ class Log:
 
 class Sim:
 
-	class DebugInfo:
-		def __init__(self, debuginfo):
-			self.symboldict = debuginfo if debuginfo else dict()
-			self.sortedbyvalue = sorted([(v,k) for k,v in self.symboldict.items() if '.' not in k], reverse=True)
-
-		def sym_from_addr(self, addr):
-			for v,k in self.sortedbyvalue:
-				if v <= addr:
-					return k, addr-v
-			return None,None
-
-
 	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None, memcallback=None):
 		self.state = simulation.State(self, cycletrace)
 		#self.state.setpc(entry)
@@ -70,7 +58,7 @@ class Sim:
 
 		self.log = log if log else Log()
 
-		self.debuginfo = Sim.DebugInfo(debuginfo)
+		self.debuginfo = debuginfo
 
 		self.stop = False
 
@@ -283,11 +271,23 @@ class Sim:
 
 		stackframes = self.backtrace()
 
+		longestsym = max([len(sym) for addr,offset,sym in stackframes if sym])
+		if longestsym > 20:
+			longestsym = 20
+
 		for i in range(len(stackframes)-1, -1, -1):
 			addr, offset, sym = stackframes[i]
-			symstr = f"{offset:3} + {sym}" if sym else "?"
+			length = max(longestsym, len(sym))
+			symstr = f"{offset:3} + {sym:{length}}" if sym else "?"
 
-			sys.stdout.write(f"  {i:3}   {addr:04X}  {symstr}\n")
+			info = self.debuginfo[addr]
+			if info and info.sourcelocation:
+				filename, linenumber = info.sourcelocation
+				sourcelocation = f"{filename}:{linenumber}"
+			else:
+				sourcelocation = ""
+
+			sys.stdout.write(f"  {i:3}   {addr:04X}  {symstr}  {sourcelocation}\n")
 
 		sys.stdout.write("\n")
 

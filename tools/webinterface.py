@@ -35,6 +35,7 @@ class Interface:
 		self.raf_id = None
 
 		self.memelements = []
+		self.instrelements = []
 
 	def assemble(self, ev):
 		self.sim = None
@@ -42,6 +43,7 @@ class Interface:
 		self.debuginfo = None
 
 		document["outputwindow"].clear()
+		document["machinecode"].clear()
 
 		try:
 			sourceelement = document["sourcecode"]
@@ -50,6 +52,9 @@ class Interface:
 			assembler = assem.Assembler()
 			self.assembled = assembler.assemble("test.s", sys.stdout, sourcelines)
 			self.debuginfo = assembler.builddebuginfo()
+
+			self.update_machinecode_pane()
+
 		except Exception as e:
 			document["outputwindow"] <= str(e)
 			document["outputwindow"].scrollTop = document["outputwindow"].scrollHeight
@@ -101,7 +106,7 @@ class Interface:
 			cancel_animation_frame(self.raf_id)
 
 	def do_stepsimulation(self):
-		self.mem_clearhighlights()
+		self.clear_memhighlights()
 		self.sim.step()
 		self.update_ui()
 
@@ -128,6 +133,30 @@ class Interface:
 			symstr = f"{offset:3} + {sym}" if sym else "?"
 			
 			document["callstack"] <= f"  {i:3}   {addr:04X}  {symstr}\n"
+
+		self.clear_instrhighlights()
+		instrelement = self.instrelements[st.getpc()//2]
+		if instrelement:
+			instrelement.style["backgroundColor"] = "#ffff88"
+			self.instrhighlights.add(instrelement)
+			self.scroll_machinecode(st.getpc())
+
+	def scroll_machinecode(self, addr):
+		info = self.debuginfo[addr]
+		if not info or not info.sourcelocation:
+			return
+
+		filename,linenumber = info.sourcelocation
+
+		if filename != "test.s":
+			return
+		
+		elt = document["machinecode"]
+		targetscroll = elt.scrollHeight * (linenumber-1) / (self.num_mclines-1)
+		if targetscroll < elt.scrollTop:
+			elt.scrollTop = targetscroll - 8
+		elif targetscroll - elt.height + 16 > elt.scrollTop:
+			elt.scrollTop = targetscroll - elt.height + 16
 
 	def reset_memory_pane(self):
 		docelt = document["memory"]
@@ -190,11 +219,47 @@ class Interface:
 			elt.style["backgroundColor"] = "#ffcc88"
 			elt.text = f"{value:02X}"
 
-	def mem_clearhighlights(self):
+	def clear_memhighlights(self):
 		for elt in self.memhighlights:
 			elt.style["backgroundColor"] = ""
 		self.memhighlights = set()
 
+	def update_machinecode_pane(self):
+		sourceelt = document["sourcecode"]
+		mcelt = document["machinecode"]
+
+		self.instrelements = [None]*32768
+		
+		sourcelines = sourceelt.value.splitlines()
+		for i,line in enumerate(sourcelines):
+			linenum = i+1
+
+			text = ""
+
+			addr,size = self.debuginfo.getaddrsforline("test.s", linenum)
+			if addr is not None:
+				text = f"{addr:04X}: "
+				if size > 6:
+					text += f"({size//2} words)"
+				else:
+					for i in range(size//2):
+						text += f"{self.assembled[addr//2 + i]:04X} "
+
+			text = f"{text:22}  {line}\n"
+			element = html.DIV(text)
+			mcelt <= element
+
+			if addr is not None:
+				for i in range(size//2):
+					self.instrelements[addr//2 + i] = element
+
+		self.instrhighlights = set()
+		self.num_mclines = len(sourcelines)
+
+	def clear_instrhighlights(self):
+		for elt in self.instrhighlights:
+			elt.style["backgroundColor"] = ""
+		self.instrhighlights = set()
 
 interface = Interface()
 
