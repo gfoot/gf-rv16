@@ -44,11 +44,13 @@
 
 #sourcecode {
 	flex:auto;
+	overflow:scroll;
+	text-wrap:nowrap;
 }
 
 #machinecode {
 	flex:1 1 0;
-	overflow:auto;
+	overflow:scroll;
 	border:1px solid lightgrey;
 	margin:0px;
 }
@@ -108,7 +110,7 @@
 <div class="heading">Source code:</div>
 <textarea id="sourcecode"></textarea>
 </div>
-<div class="panel" style="flex:2">
+<div class="panel" style="flex:2;width:0px">
 <div class="heading">Machine code:</div>
 <pre id="machinecode"></pre>
 </div>
