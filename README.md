@@ -9,28 +9,32 @@ write code with) and implementable (i.e. instructions can be
 encoded reasonably in a 16-bit encoding space, and can execute on a 
 relatively simple back end core)
 
-See the wiki on github for more information: https://github.com/gfoot/gf-rv16/wiki
+More information: https://github.com/gfoot/gf-rv16/wiki
 
-# Python tools
+# Try it in your web browser
+
+[Web-based Simulator](https://gfoot.github.io/gf-rv16/) - this is a live embedding of the latest code, running in-browser using [Brython](https://brython.info/index.html)
+
+# Python command-line tools
 
 ## Assembling some code, running the simulator
 
-  $ python tools/assem.py src/testcode.s
+  $ python tools/assem.py src/tests/testcode.s
 
-  $ python tools/sim.py src/testcode.s --trace
+  $ python tools/sim.py src/tests/testcode.s --trace
 
 
 ## Library tests
 
-  $ python tools/sim.py src/randtest.s
+  $ python tools/sim.py src/tests/randtest.s
 
 Outputs a lot of random bits that can be fed into a randomness checker.
 
-  $ python tools/sim.py src/malloctest.s
+  $ python tools/sim.py src/tests/malloctest.s
 
 Tests basic allocation and freeing behaviour, including coallescing adjacent free regions
 
-  $ python tools/sim.py src/malloctest2.s
+  $ python tools/sim.py src/tests/malloctest2.s
 
 Stress-tests allocation and freeing randomly, small and large blocks, to try to fragment the
 heap and make life hard for the allocator
@@ -38,7 +42,7 @@ heap and make life hard for the allocator
 
 ## Analysing some code
 
-  $ python tools/stats.py src/malloctest2.s
+  $ python tools/stats.py src/tests/malloctest2.s
 
 This gathers statistics about instruction usage and immediate ranges used by the assembled code.
 
