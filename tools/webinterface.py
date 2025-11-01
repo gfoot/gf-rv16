@@ -36,6 +36,7 @@ class Interface:
 
 		self.memelements = []
 		self.instrelements = []
+		self.breakpoints = set()
 
 	def assemble(self, ev):
 		self.sim = None
@@ -100,6 +101,9 @@ class Interface:
 		self.raf_id = request_animation_frame(self.runsimulation)
 
 		self.do_stepsimulation()
+
+		if self.sim.state.getpc() in self.breakpoints:
+			cancel_animation_frame(self.raf_id)
 
 	def stopsimulation(self, ev):
 		if self.raf_id is not None:
@@ -230,6 +234,9 @@ class Interface:
 
 		self.instrelements = [None]*32768
 		
+		oldbreakpoints = self.breakpoints
+		self.breakpoints = set()
+
 		sourcelines = sourceelt.value.splitlines()
 		for i,line in enumerate(sourcelines):
 			linenum = i+1
@@ -246,7 +253,19 @@ class Interface:
 						text += f"{self.assembled[addr//2 + i]:04X} "
 
 			text = f"{text:22}  {line}\n"
-			element = html.DIV(text)
+
+			checkbox = self.make_breakpoint_checkbox(addr)
+
+			element = html.DIV(checkbox + text, Class="machinecodeline")
+
+			if addr is not None:
+				element.bind("mouseover", Interface.machinecodeline_showbpcheckbox)
+				element.bind("mouseout", Interface.machinecodeline_hidebpcheckbox)
+				if addr in oldbreakpoints:
+					self.breakpoints.add(addr)
+					checkbox.checked = True
+					checkbox.style["visibility"] = "visible"
+
 			mcelt <= element
 
 			if addr is not None:
@@ -255,6 +274,33 @@ class Interface:
 
 		self.instrhighlights = set()
 		self.num_mclines = len(sourcelines)
+
+	def make_breakpoint_checkbox(self, addr):
+		element = html.INPUT(type="checkbox", style="visibility:hidden")
+
+		if addr is not None:
+			element.attrs["breakpointaddr"] = addr
+			element.bind("change", self.breakpoint_checkbox_changed)
+
+		return element
+
+	def breakpoint_checkbox_changed(self, ev):
+		elt = ev.currentTarget
+		addr = int(elt.attrs["breakpointaddr"])
+		if elt.checked:
+			self.breakpoints.add(addr)
+			elt.style["visibility"] = "visible"
+		else:
+			self.breakpoints.remove(addr)
+
+	def machinecodeline_showbpcheckbox(ev):
+		elt = ev.currentTarget.select_one("input")
+		elt.style["visibility"] = "visible"
+
+	def machinecodeline_hidebpcheckbox(ev):
+		elt = ev.currentTarget.select_one("input")
+		if not elt.checked:
+			elt.style["visibility"] = "hidden"
 
 	def clear_instrhighlights(self):
 		for elt in self.instrhighlights:
