@@ -1,7 +1,7 @@
 import sys
 
-from browser import document, html, alert
-from browser.timer import request_animation_frame, cancel_animation_frame
+from browser import document, html, alert, window
+from browser.timer import request_animation_frame, cancel_animation_frame, set_timeout, clear_timeout
 
 import assem
 import disassem
@@ -22,17 +22,16 @@ sys.stdout = StdoutToDocument()
 class Interface:
 	def __init__(self):
 		document["assemblebutton"].bind("click", self.assemble)
-		document["disassemblebutton"].bind("click", self.disassemble)
 		document["startbutton"].bind("click", self.startsimulation)
 		document["stepbutton"].bind("click", self.stepsimulation)
 		document["runbutton"].bind("click", self.runsimulation)
-		document["stopbutton"].bind("click", self.stopsimulation)
 
 		self.sim = None
 		self.assembled = None
 		self.debuginfo = None
 
 		self.raf_id = None
+		self.timeout_id = None
 
 		self.memelements = []
 		self.instrelements = []
@@ -40,6 +39,9 @@ class Interface:
 
 		self.stepmode = "source"
 		document["stepmode"].bind("change", self.stepmodechanged)
+
+		self.runspeed = int(document["runspeed"].value)
+		document["runspeed"].bind("change", self.runspeedchanged)
 
 		document["memlo"].bind("change", self.memrangechanged)
 		document["memhi"].bind("change", self.memrangechanged)
@@ -50,13 +52,21 @@ class Interface:
 				assert option.id.startswith("stepmode_")
 				self.stepmode = option.id.replace("stepmode_", "")
 
+	def runspeedchanged(self, ev):
+		self.runspeed = int(ev.currentTarget.value)
+
 	def assemble(self, ev):
+		if self.sim:
+			self.stopsimulation()
+
 		self.sim = None
 		self.assembled = None
 		self.debuginfo = None
 
 		document["outputwindow"].clear()
 		document["machinecode"].clear()
+
+		self.reset_memory_pane()
 
 		try:
 			sourceelement = document["sourcecode"]
@@ -66,20 +76,18 @@ class Interface:
 			self.assembled = assembler.assemble("test.s", sys.stdout, sourcelines)
 			self.debuginfo = assembler.builddebuginfo()
 
-			self.update_machinecode_pane()
-
 		except Exception as e:
 			document["outputwindow"] <= str(e)
 			document["outputwindow"].scrollTop = document["outputwindow"].scrollHeight
 
-	def disassemble(self, ev):
-		if not self.assembled:
-			return
-
-		document["outputwindow"].clear()
-		disassem.disassemble(self.assembled)
+		else:
+			self.update_machinecode_pane()
+			self.startsimulation(ev)
 
 	def startsimulation(self, ev):
+		if self.sim:
+			self.stopsimulation()
+
 		if not self.assembled or not self.debuginfo:
 			self.assemble(ev)
 			if not self.assembled or not self.debuginfo:
@@ -92,12 +100,12 @@ class Interface:
 		self.reset_memory_pane()
 
 	def stepsimulation(self, ev):
-		if self.raf_id is not None:
-			cancel_animation_frame(self.raf_id)
 		if not self.sim:
 			self.startsimulation(ev)
 			if not self.sim:
 				return
+
+		self.clear_memhighlights()
 
 		self.do_stepsimulation(self.stepmode)
 
@@ -110,19 +118,39 @@ class Interface:
 		if self.sim.stop:
 			return
 
-		self.raf_id = request_animation_frame(self.runsimulation)
+		self.clear_memhighlights()
 
-		self.do_stepsimulation("source")
+		if self.runspeed >= 0:
+			bp = False
+			for i in range(1 << self.runspeed):
+				self.do_stepsimulation("source")
 
-		if self.sim.state.getpc() in self.breakpoints:
-			cancel_animation_frame(self.raf_id)
+				if self.sim.state.getpc() in self.breakpoints:
+					bp = True
+					break
 
-	def stopsimulation(self, ev):
+			if not bp:
+				self.raf_id = request_animation_frame(self.runsimulation)
+
+		else:
+			self.do_stepsimulation(self.stepmode)
+
+			if not self.sim.state.getpc() in self.breakpoints:
+				self.timeout_id = set_timeout(self.runsimulationslow, 20 << (-self.runspeed))
+
+	def runsimulationslow(self):
+		self.runsimulation(None)
+
+	def stopsimulation(self):
 		if self.raf_id is not None:
 			cancel_animation_frame(self.raf_id)
+			self.raf_id = None
+		if self.timeout_id is not None:
+			clear_timeout(self.timeout_id)
+			self.timeout_id = None
 
 	def do_stepsimulation(self, stepmode):
-		self.clear_memhighlights()
+		self.stopsimulation()
 
 		if stepmode == "source":
 			originfo = self.debuginfo[self.sim.state.getpc()]
@@ -192,12 +220,13 @@ class Interface:
 		self.reset_memory_pane()
 
 	def reset_memory_pane(self):
+		docelt = document["memory"]
+		docelt.clear()
+
 		if not self.sim:
+			docelt <= "----------------------------------------------------------------"
 			return
 
-		docelt = document["memory"]
-
-		docelt.clear()
 		self.memelts = []
 
 		fc = lambda v: chr(v&0xff) if v >= 32 and v < 127 else "."

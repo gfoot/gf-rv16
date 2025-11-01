@@ -102,13 +102,20 @@
 <div class="buttonpanel">
 <span>Assembler:</span>
 <div><button id="assemblebutton">Assemble</button></div>
-<div><button id="disassemblebutton">Disassemble</button></div>
+<div style="width:20px"></div>
 <span>Simulator:</span>
 <div><button id="startbutton">Reset</button></div>
 <div><button id="stepbutton">Step</button></div>
 <div><button id="runbutton">Run</button></div>
-<div><button id="stopbutton">Stop</button></div>
-<div>Step mode:<select id="stepmode"><option id="stepmode_source">Source Code</option><option id="stepmode_mc">Machine Code</option><option id="stepmode_cycle">Clock Cycle</option></select></div>
+<div style="width:20px"></div>
+<span>Step mode:</span>
+	<select id="stepmode" style="margin-left:10px;margin-right:10px">
+		<option id="stepmode_source">Source Code</option>
+		<option id="stepmode_mc">Machine Code</option>
+		<option id="stepmode_cycle">Clock Cycle</option>
+	</select>
+<div style="width:20px"></div>
+<span>Run speed:</span><input type="range" id="runspeed" min="-6" max="6" value="0" />
 </div>
 
 <div style="display:flex;height:80vh">
