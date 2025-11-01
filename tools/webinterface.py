@@ -38,8 +38,17 @@ class Interface:
 		self.instrelements = []
 		self.breakpoints = set()
 
+		self.stepmode = "source"
+		document["stepmode"].bind("change", self.stepmodechanged)
+
 		document["memlo"].bind("change", self.memrangechanged)
 		document["memhi"].bind("change", self.memrangechanged)
+
+	def stepmodechanged(self, ev):
+		for option in ev.currentTarget:
+			if option.selected:
+				assert option.id.startswith("stepmode_")
+				self.stepmode = option.id.replace("stepmode_", "")
 
 	def assemble(self, ev):
 		self.sim = None
@@ -90,7 +99,7 @@ class Interface:
 			if not self.sim:
 				return
 
-		self.do_stepsimulation()
+		self.do_stepsimulation(self.stepmode)
 
 	def runsimulation(self, ev):
 		if not self.sim:
@@ -103,7 +112,7 @@ class Interface:
 
 		self.raf_id = request_animation_frame(self.runsimulation)
 
-		self.do_stepsimulation()
+		self.do_stepsimulation("source")
 
 		if self.sim.state.getpc() in self.breakpoints:
 			cancel_animation_frame(self.raf_id)
@@ -112,9 +121,23 @@ class Interface:
 		if self.raf_id is not None:
 			cancel_animation_frame(self.raf_id)
 
-	def do_stepsimulation(self):
+	def do_stepsimulation(self, stepmode):
 		self.clear_memhighlights()
-		self.sim.step()
+
+		if stepmode == "source":
+			originfo = self.debuginfo[self.sim.state.getpc()]
+			while True:
+				self.sim.step()
+				info = self.debuginfo[self.sim.state.getpc()]
+				if originfo is None or info is None or originfo.sourcelocation is None or info.sourcelocation is None:
+					break
+				if originfo.sourcelocation != info.sourcelocation:
+					break
+		elif stepmode == "mc":
+			self.sim.step()
+		elif stepmode == "cycle":
+			self.sim.stepcycle()
+
 		self.update_ui()
 
 	def update_ui(self):
