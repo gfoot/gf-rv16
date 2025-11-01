@@ -38,6 +38,9 @@ class Interface:
 		self.instrelements = []
 		self.breakpoints = set()
 
+		document["memlo"].bind("change", self.memrangechanged)
+		document["memhi"].bind("change", self.memrangechanged)
+
 	def assemble(self, ev):
 		self.sim = None
 		self.assembled = None
@@ -161,6 +164,9 @@ class Interface:
 			elt.scrollTop = targetscroll - 8
 		elif targetscroll - elt.height + 16 > elt.scrollTop:
 			elt.scrollTop = targetscroll - elt.height + 16
+
+	def memrangechanged(self, ev):
+		self.reset_memory_pane()
 
 	def reset_memory_pane(self):
 		docelt = document["memory"]
