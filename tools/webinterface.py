@@ -169,6 +169,9 @@ class Interface:
 		self.reset_memory_pane()
 
 	def reset_memory_pane(self):
+		if not self.sim:
+			return
+
 		docelt = document["memory"]
 
 		docelt.clear()
