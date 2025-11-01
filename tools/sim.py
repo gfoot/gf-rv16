@@ -1,4 +1,5 @@
 import assem
+import error
 import os
 import sys
 
@@ -47,7 +48,7 @@ class Log:
 
 class Sim:
 
-	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None, memcallback=None):
+	def __init__(self, simulation, memory, entry=0, log=None, debuginfo=None, inp=None, memcallback=None, enablecoredump=True):
 		self.state = simulation.State(self, cycletrace)
 		#self.state.setpc(entry)
 		#self.state.advancepc()
@@ -66,6 +67,7 @@ class Sim:
 		self.pendinginput = None
 
 		self.memcallback = memcallback
+		self.enablecoredump = enablecoredump
 
 
 	def unimp(self):
@@ -177,9 +179,13 @@ class Sim:
 		return endofinstruction
 
 	def step(self):
-		while not self.stepcycle():
-			if self.stop:
-				break
+		try:
+			while not self.stepcycle():
+				if self.stop:
+					break
+		except error.SimulatedException as e:
+			self.log.error(e)
+			self.stop = True
 
 	def backtrace(self):
 		addr = self.state.getpc()
@@ -210,7 +216,7 @@ class Sim:
 			if framesize:
 				addr = self.memreadw(sp,True)-2
 				sp = (sp + framesize) & 0xffff
-			elif len(stackframes) == 1:
+			elif len(stackframes) == 1 and self.state.ureg(1) != 0:
 				# The very first function might be a leaf function that doesn't need a stack frame
 				addr = self.state.ureg(1)-2 # ra
 			else:
@@ -220,6 +226,9 @@ class Sim:
 
 
 	def coredump(self):
+		if not self.enablecoredump:
+			return
+
 		if False:
 			step = 16
 			for base in range(0,len(self.memory),step):
@@ -275,9 +284,9 @@ class Sim:
 		if longestsym > 20:
 			longestsym = 20
 
-		for i in range(len(stackframes)-1, -1, -1):
-			addr, offset, sym = stackframes[i]
-			length = max(longestsym, len(sym))
+		for i in range(len(stackframes)):
+			addr, offset, sym = stackframes[-1-i]
+			length = max(longestsym, len(sym) if sym else 0)
 			symstr = f"{offset:3} + {sym:{length}}" if sym else "?"
 
 			info = self.debuginfo[addr]
@@ -291,11 +300,9 @@ class Sim:
 
 		sys.stdout.write("\n")
 
-		self.log.error(exceptionstring)
-
 		self.coredump()
 
-		sys.exit(1)
+		raise error.SimulatedException(exceptionstring)
 
 
 if __name__ == "__main__":

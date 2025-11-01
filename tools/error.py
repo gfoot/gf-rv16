@@ -4,4 +4,9 @@ class AsmError(Exception):
 class AsmSyntaxError(AsmError):
 	pass
 
+class SimulatorError(Exception):
+	pass
+
+class SimulatedException(SimulatorError):
+	pass
 

@@ -1,10 +1,12 @@
 import sys
+import traceback
 
 from browser import document, html, alert, window
 from browser.timer import request_animation_frame, cancel_animation_frame, set_timeout, clear_timeout
 
 import assem
 import disassem
+import error
 import sim
 
 
@@ -95,7 +97,7 @@ class Interface:
 
 		log = sim.Log()
 		self.mem = self.assembled[:]
-		self.sim = sim.Sim(sim.MicrocodeSimulation, self.mem, log=log, debuginfo=self.debuginfo, memcallback=self.memcallback)
+		self.sim = sim.Sim(sim.MicrocodeSimulation, self.mem, log=log, debuginfo=self.debuginfo, memcallback=self.memcallback, enablecoredump=False)
 		self.update_ui()
 		self.reset_memory_pane()
 
@@ -152,6 +154,9 @@ class Interface:
 	def do_stepsimulation(self, stepmode):
 		self.stopsimulation()
 
+		if self.sim.stop:
+			return
+
 		if stepmode == "source":
 			originfo = self.debuginfo[self.sim.state.getpc()]
 			while True:
@@ -190,7 +195,7 @@ class Interface:
 			addr, offset, sym = stackframes[i]
 			symstr = f"{offset:3} + {sym}" if sym else "?"
 			
-			document["callstack"] <= f"  {i:3}   {addr:04X}  {symstr}\n"
+			document["callstack"] <= f"{len(stackframes)-i-1:3}   {addr:04X}  {symstr}\n"
 
 		self.clear_instrhighlights()
 		instrelement = self.instrelements[st.getpc()//2]
@@ -373,6 +378,7 @@ interface = Interface()
 
 document["sourcecode"].value = "\n".join([
 	"# Enter source code here",
+	"",
 	"    sievebase = $0050",
 	"    sievetop = $0150",
     "    results = $0050",
