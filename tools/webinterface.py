@@ -48,6 +48,12 @@ class Interface:
 		document["memlo"].bind("change", self.memrangechanged)
 		document["memhi"].bind("change", self.memrangechanged)
 
+		document["sourcecode"].bind("input", self.sourcecodechanged)
+		self.sourcecodechanged(None)
+
+		for name in ("startbutton", "stepbutton", "runbutton"):
+			document[name].disabled = True
+
 	def stepmodechanged(self, ev):
 		for option in ev.currentTarget:
 			if option.selected:
@@ -57,6 +63,9 @@ class Interface:
 	def runspeedchanged(self, ev):
 		self.runspeed = int(ev.currentTarget.value)
 
+	def sourcecodechanged(self, ev):
+		document["assemblebutton"].disabled = False
+
 	def assemble(self, ev):
 		if self.sim:
 			self.stopsimulation()
@@ -64,6 +73,9 @@ class Interface:
 		self.sim = None
 		self.assembled = None
 		self.debuginfo = None
+
+		for name in ("startbutton", "stepbutton", "runbutton"):
+			document[name].disabled = True
 
 		document["outputwindow"].clear()
 		document["machinecode"].clear()
@@ -84,6 +96,11 @@ class Interface:
 
 		else:
 			self.update_machinecode_pane()
+
+			document["assemblebutton"].disabled = True
+			for name in ("startbutton", "stepbutton", "runbutton"):
+				document[name].disabled = False
+
 			self.startsimulation(ev)
 
 	def startsimulation(self, ev):
@@ -94,6 +111,10 @@ class Interface:
 			self.assemble(ev)
 			if not self.assembled or not self.debuginfo:
 				return
+
+		document["outputwindow"].clear()
+		for name in ("stepbutton", "runbutton"):
+			document[name].disabled = False
 
 		log = sim.Log()
 		self.mem = self.assembled[:]
@@ -170,6 +191,10 @@ class Interface:
 			self.sim.step()
 		elif stepmode == "cycle":
 			self.sim.stepcycle()
+
+		if self.sim.stop:
+			for name in ("stepbutton", "runbutton"):
+				document[name].disabled = True
 
 		self.update_ui()
 
