@@ -401,7 +401,7 @@ class Interface:
 interface = Interface()
 
 
-document["sourcecode"].value = "\n".join([
+defaultsourcecode = "\n".join([
 	"# Enter source code here",
 	"",
 	"    sievebase = $0050",
@@ -452,6 +452,9 @@ document["sourcecode"].value = "\n".join([
 	"    nop",
 	"    ebreak",
 ])
+
+sourcecode = document.query.getvalue("test.s", defaultsourcecode)
+document["sourcecode"].value = sourcecode
 
 
 #	"# Enter source code here",
