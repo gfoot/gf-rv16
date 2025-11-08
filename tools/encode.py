@@ -1,77 +1,81 @@
 # Instruction encoder
 
+import re
+
 encodings = """
-  0  0  0   0  0  0   0  0  0   0  0  0   0 0 0 0  	   1          	unimp
+  0  0  0   0  0  0   0  0  0   0  0  0   0 0 0 0        1           unimp
 
-  iF iD iC  iB iA i9  i8 iE 0   d  d  d   0 0 0 0  	2048 (8,3)    	lui	rd, imm8h8z
-  iF iD iC  iB iA i9  i8 iE 1   d  d  d   0 0 0 0  	2048 (8,3)    	auipc	rd, imm8h8z
+  iF iD iC  iB iA i9  i8 iE 0   d  d  d   0 0 0 0     2048 (8,3)     lui     rd, imm8h8z
+  iF iD iC  iB iA i9  i8 iE 1   d  d  d   0 0 0 0     2048 (8,3)     auipc   rd, imm8h8z
                                                     
-  i7 i5 i4  i3 i2 i1  i0 i6 0   d  d  d   0 0 0 1  	2048 (8,3)    	addi8	rd, imm8
-  i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 0   0 0 0 1  	 512 (9,)      	j	imm9ez
-  i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 1   0 0 0 1  	 512 (9,)      	jal	ra, imm9ez
-  i5 i0 i4  i3 i2 i1  1  0  1   d  d  d   0 0 0 1  	 512 (6,3)    	li	rd, imm6z
-  .  .  .   .  .  .   1  1  1   .  .  .   0 0 0 1  	 512 (6,3)    	.	
+  i7 i5 i4  i3 i2 i1  i0 i6 0   d  d  d   0 0 0 1     2048 (8,3)     addi8   rd, imm8
+  i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 0   0 0 0 1      512 (9,)      j       imm9ez
+  i9 i5 i4  i3 i2 i1  0  i6 1   i7 i8 1   0 0 0 1      512 (9,)      jal     ra, imm9ez
+  i5 i0 i4  i3 i2 i1  1  0  1   d  d  d   0 0 0 1      512 (6,3)     li      rd, imm6z
+  .  .  .   .  .  .   1  1  1   .  .  .   0 0 0 1      512 (6,3)     .       
                                                    
-  i6 i5 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 0 1 0  	4096 (6,3,3) 	lw	rd, rs1, imm6ez
-  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  0 0 1 1  	4096 (6,3,3) 	sw	rs3, rs1, imm6ez
-  i5 i0 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 1 0 0  	4096 (6,3,3) 	lb	rd, rs1, imm6z
-  i5 i0 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  0 1 0 1  	4096 (6,3,3) 	sb	rs3, rs1, imm6z
-  i5 i0 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 1 1 0  	4096 (6,3,3) 	lbu	rd, rs1, imm6z
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 0 1 0     4096 (6,3,3)   lw      rd, rs1, imm6ez
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  0 0 1 1     4096 (6,3,3)   sw      rs3, rs1, imm6ez
+  i5 i0 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 1 0 0     4096 (6,3,3)   lb      rd, rs1, imm6z
+  i5 i0 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  0 1 0 1     4096 (6,3,3)   sb      rs3, rs1, imm6z
+  i5 i0 i4  i3 i2 i1  s1 s1 s1  d  d  d   0 1 1 0     4096 (6,3,3)   lbu     rd, rs1, imm6z
 
-  0  0  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  <	 224 (3,3,3) 	add	rd, rs1, rs2
-  0  0  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  >	 224 (3,3,3) 	and	rd, rs1, rs2
-  0  0  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  <	 224 (3,3,3) 	or	rd, rs1, rs2
-  0  0  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  >	 224 (3,3,3) 	xor	rd, rs1, rs2
-  0  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  !	 448 (3,3,3) 	sub	rd, rs1, rs2
-  0  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  =	  64 (3,3,3) 	neg	rd, rs1, rs2
-  0  1  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  	 512 (3,3,3) 	sll	rd, rs1, rs2
-  1  0  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  	 512 (3,3,3) 	sra	rd, rs1, rs2
-  1  0  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  	 512 (3,3,3) 	srl	rd, rs1, rs2
-  1  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  !	 448 (3,3,3) 	slt	rd, rs1, rs2
-  1  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  =	  64 (3,3,3) 	sgtz	rd, rs1, rs2
-  1  1  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  !	 448 (3,3,3) 	sltu	rd, rs1, rs2
-  1  1  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  =	  64 (3,3,3) 	snez	rd, rs1, rs2
+  0  0  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  <   224 (3,3,3)   add     rd, rs1, rs2
+  0  0  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  >   224 (3,3,3)   and     rd, rs1, rs2
+  0  0  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  <   224 (3,3,3)   or      rd, rs1, rs2
+  0  0  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  >   224 (3,3,3)   xor     rd, rs1, rs2
+  0  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  !   448 (3,3,3)   sub     rd, rs1, rs2
+  0  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  =    64 (3,3,3)   neg     rd, rs1, rs2
+  0  1  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1      512 (3,3,3)   sll     rd, rs1, rs2
+  1  0  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1      512 (3,3,3)   sra     rd, rs1, rs2
+  1  0  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1      512 (3,3,3)   srl     rd, rs1, rs2
+  1  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  !   448 (3,3,3)   slt     rd, rs1, rs2
+  1  1  0   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  =    64 (3,3,3)   sgtz    rd, rs1, rs2
+  1  1  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  !   448 (3,3,3)   sltu    rd, rs1, rs2
+  1  1  1   s2 s2 s2  s1 s1 s1  d  d  d   0 1 1 1  =    64 (3,3,3)   snez    rd, rs1, rs2
 
-  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 0  !	3584 (6,3,3) 	beq	rs1, rs3, imm6ez
-  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 0  =	 512 (6,3) 	beqz	rs1, rs3, imm6ez
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 0  !  3584 (6,3,3)   beq     rs1, rs3, imm6ez
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 0  =   512 (6,3)     beqz    rs1, rs3, imm6ez
            
-  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 1  !	3584 (6,3,3) 	bne	rs1, rs3, imm6ez
-  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 1  =	 512 (6,3) 	bnez	rs1, rs3, imm6ez
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 1  !  3584 (6,3,3)   bne     rs1, rs3, imm6ez
+  i6 i5 i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 0 1  =   512 (6,3)     bnez    rs1, rs3, imm6ez
            
-  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  !	1792 (5,3,3) 	bge	rs1, rs3, imm5ez
-  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =	 256 (5,3) 	bgez	rs1, rs3, imm5ez
-  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  !	1792 (5,3,3) 	bgeu	rs1, rs3, imm5ez
-  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =	 256 (5,3) 	jr	rs1, rs3, imm5ez
+  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  !  1792 (5,3,3)   bge     rs1, rs3, imm5ez
+  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =   256 (5,3)     bgez    rs1, rs3, imm5ez
+  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  !  1792 (5,3,3)   bgeu    rs1, rs3, imm5ez
+  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 0  =   256 (5,3)     jr      rs1, rs3, imm5ez
                                                    
-  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  !	1792 (5,3,3) 	blt	rs1, rs3, imm5ez
-  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =	 256 (5,3) 	bltz	rs1, rs3, imm5ez
-  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  !	1792 (5,3,3) 	bltu	rs1, rs3, imm5ez
-  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =	 256 (5,3) 	jalr	rs1, rs3, imm5ez
+  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  !  1792 (5,3,3)   blt     rs1, rs3, imm5ez
+  i5 0  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =   256 (5,3)     bltz    rs1, rs3, imm5ez
+  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  !  1792 (5,3,3)   bltu    rs1, rs3, imm5ez
+  i5 1  i4  i3 i2 i1  s1 s1 s1  s3 s3 s3  1 0 1 1  =   256 (5,3)     jalr    rs1, rs3, imm5ez
                                                    
-  i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 0  	2048 (5,3,3) 	addi	rd, rs1, imm5
-  i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 0  	2048 (5,3,3) 	andi	rd, rs1, imm5
+  i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 0     2048 (5,3,3)   addi    rd, rs1, imm5
+  i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 0     2048 (5,3,3)   andi    rd, rs1, imm5
                                                    
-  i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 1  	2048 (5,3,3) 	ori	rd, rs1, imm5
-  i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 1  	2048 (5,3,3) 	xori	rd, rs1, imm5
+  i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 1     2048 (5,3,3)   ori     rd, rs1, imm5
+  i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 0 1     2048 (5,3,3)   xori    rd, rs1, imm5
                                                    
-  i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 0  	2048 (5,3,3) 	slti	rd, rs1, imm5z
-  i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 0  	2048 (5,3,3) 	sltiu	rd, rs1, imm5u
+  i4 i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 0     2048 (5,3,3)   slti    rd, rs1, imm5z
+  i4 i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 0     2048 (5,3,3)   sltiu   rd, rs1, imm5u
                                                    
-  0  i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1  	1024 (4,3,3) 	slli	rd, rs1, imm4zu
-  0  i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1  	1024 (4,3,3) 	srai	rd, rs1, imm4zu
-  1  i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1  	1024 (4,3,3) 	srli	rd, rs1, imm4u
+  0  i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1     1024 (4,3,3)   slli    rd, rs1, imm4zu
+  0  i0 1   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1     1024 (4,3,3)   srai    rd, rs1, imm4zu
+  1  i0 0   i3 i2 i1  s1 s1 s1  d  d  d   1 1 1 1     1024 (4,3,3)   srli    rd, rs1, imm4u
 
-  1  .  1   .  .  .   0  0  0   .  .  .   1 1 1 1  	   1           	ecall
-  1  .  1   .  .  .   0  0  1   .  .  .   1 1 1 1  	   1           	ebreak
-  1  .  1   .  .  .   0  1  0   d  d  d   1 1 1 1  	   8 (3)     	rdmepc	rd
-  1  .  1   .  .  .   0  1  1   s3 s3 s3  1 1 1 1  	   8 (3)     	wrmepc	rs3
-  1  .  1   .  .  .   1  0  0   d  d  d   1 1 1 1  	   8 (3)     	clrmie	rd
-  1  .  1   .  .  .   1  0  1   d  d  d   1 1 1 1  	   8 (3)     	setmie	rd
-  1  i0 1   i3 i2 i1  1  1  0   .  .  .   1 1 1 1  	  16 (4)       	mret	imm4zu
+  1  .  1   .  .  .   0  0  0   .  .  .   1 1 1 1        1           ecall
+  1  .  1   .  .  .   0  0  1   .  .  .   1 1 1 1        1           ebreak
+  1  .  1   .  .  .   0  1  0   d  d  d   1 1 1 1        8 (3)       rdmepc  rd
+  1  .  1   .  .  .   0  1  1   s3 s3 s3  1 1 1 1        8 (3)       wrmepc  rs3
+  1  .  1   .  .  .   1  0  0   d  d  d   1 1 1 1        8 (3)       clrmie  rd
+  1  .  1   .  .  .   1  0  1   d  d  d   1 1 1 1        8 (3)       setmie  rd
+  1  i0 1   i3 i2 i1  1  1  0   .  .  .   1 1 1 1       16 (4)       mret    imm4zu
 
 """
 # not sure if IRQ needs a specific encoding, but all bits set is at least invalid in normal code
 # 1  1  1   1  1  1   1  1  1   1  1  1   1 1 1 1  	   1           	*irq
+
+re_encoding = re.compile(r"^(................................................) (.) (...............) ([^ ][^ ]*)(.*)")
 
 
 class RegDef:
@@ -252,18 +256,15 @@ class ImmDef:
 
 class Instr:
 	def __init__(self, line, argdefs):
-		split = line.split("\t")
-		while len(split) < 4:
-			split.append("")
-		bits,sizes,instr,args = split[:4]
+		m = re_encoding.match(line)
+		assert m, f"Failed to parse instruction definition [{line}]"
+
+		bits,constraint,sizes,instr,args = m.groups()
 
 		self.name = instr
+		self.constraint = constraint.strip()
 
-		self.constraint = ""
 		bits = [bit.strip() for bit in reversed(bits.split())]
-		if len(bits) == 17:
-			self.constraint = bits[0]
-			bits = bits[1:]
 		assert len(bits) == 16
 
 		args = [arg.strip() for arg in args.split(',')]
