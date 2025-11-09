@@ -486,6 +486,8 @@ class Encoding:
 			print(f"{name:6}: {argdef.describe()}")
 			argdef.test()
 
+		print()
+
 		descs = []
 		for k,instr in sorted(self.instrs.items()):
 			descs.append(str(instr))
@@ -494,6 +496,8 @@ class Encoding:
 		rows = (len(descs) + columns - 1) // columns
 		for i in range(rows):
 			print("".join([f"{desc:{maxlen}}" for desc in descs[i::rows]]))
+
+		print()
 
 
 if __name__ == "__main__":
