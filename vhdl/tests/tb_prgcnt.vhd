@@ -19,9 +19,11 @@ architecture tb of tb_prgcnt is
 	signal ctl_pcr : std_logic := '0';
 	signal ctl_pcw : std_logic := '0';
 	signal ctl_high : std_logic := '0';
+	signal ctl_regw_src : std_logic_vector(1 downto 0) := (others => '0');
 	signal pcn : unsigned(15 downto 0);
 	signal bus_b : std_logic_vector(7 downto 0);
 	signal bus_c : std_logic_vector(7 downto 0);
+	signal regw_val : std_logic_vector(7 downto 0);
 
 begin
 	main: process is
@@ -90,6 +92,51 @@ begin
 				bus_c <= x"BC";
 				cycle;
 				check_equal(pcn, 16#bcde#, result("PCN after both bytes written"));
+
+			elsif run("Test ctl_regw_src controlling regw_val") then
+				-- Preload PCN and PC with non-zero values
+				ctl_pcw <= '1';
+				bus_c <= x"DE";    -- PC low
+				cycle;
+				ctl_high <= '1';
+				bus_c <= x"BC";    -- PC high
+				cycle;
+				ctl_end <= '1';
+				cycle;
+				ctl_end <= '0';
+
+				bus_c <= x"76";    -- PCN high
+				cycle;
+				ctl_high <= '0';
+				bus_c <= x"54";    -- PCN low
+				cycle;
+
+				bus_c <= x"4A";    -- ALU
+
+				ctl_regw_src <= "00";
+				wait for 1 ns;
+				check_equal(regw_val, 0, result("ctl_regw_src:00 (zero)"));
+
+				ctl_regw_src <= "01";
+				wait for 1 ns;
+				check_equal(regw_val, 16#4A#, result("ctl_regw_src:01 (alu)"));
+
+				ctl_regw_src <= "10";
+				ctl_high <= '0';
+				wait for 1 ns;
+				check_equal(regw_val, 16#DE#, result("ctl_regw_src:10 (pc), low"));
+				ctl_high <= '1';
+				wait for 1 ns;
+				check_equal(regw_val, 16#BC#, result("ctl_regw_src:10 (pc), high"));
+
+				ctl_regw_src <= "11";
+				ctl_high <= '0';
+				wait for 1 ns;
+				check_equal(regw_val, 16#54#, result("ctl_regw_src:11 (pcn), low"));
+				ctl_high <= '1';
+				wait for 1 ns;
+				check_equal(regw_val, 16#76#, result("ctl_regw_src:11 (pcn), high"));
+				
 				
 			end if;
 
@@ -109,9 +156,11 @@ begin
 			ctl_pcr => ctl_pcr,
 			ctl_pcw => ctl_pcw,
 			ctl_high => ctl_high,
+			ctl_regw_src => ctl_regw_src,
 			pcn => pcn,
 			bus_b => bus_b,
-			bus_c => bus_c
+			bus_c => bus_c,
+			regw_val => regw_val
 		);
 
 end architecture;
